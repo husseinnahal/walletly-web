@@ -1,0 +1,287 @@
+.container {
+  padding: 2rem;
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, #1a1b26, #0f1016);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+.header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { text-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+  to { text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+}
+
+.subtitle {
+  color: #a0aec0;
+  font-size: 1.1rem;
+}
+
+/* Glass Panel Utility */
+.glassPanel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Profile Grid */
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.statIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Main Content Grid */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 968px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Challenges Section */
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.challengesList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.challengeItem {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  border-left: 4px solid #4CAF50;
+  transition: all 0.2s ease;
+}
+
+.challengeItem.completed {
+  border-left-color: #FFD700;
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.challengeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.challengeLabel {
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.challengeReward {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #FFD700;
+  font-weight: bold;
+}
+
+.progressContainer {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  transition: width 0.5s ease-out;
+}
+
+.challengeItem.completed .progressBar {
+  background: linear-gradient(90deg, #FFD700, #FFA500);
+}
+
+.progressText {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  text-align: right;
+}
+
+/* Leaderboard Section */
+.leagueBadge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-left: 0.5rem;
+}
+
+.league_bronze { background: #cd7f32; color: #fff; }
+.league_silver { background: #c0c0c0; color: #000; }
+.league_gold { background: #ffd700; color: #000; }
+.league_platinum { background: #e5e4e2; color: #000; }
+.league_diamond { background: #b9f2ff; color: #000; }
+.league_master { background: #ff00ff; color: #fff; }
+.league_legend { background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); color: #fff; }
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.leaderboardTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboardTable th {
+  text-align: left;
+  padding: 1rem;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.leaderboardTable td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.leaderboardRow {
+  transition: background 0.2s;
+}
+
+.leaderboardRow:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.rankCell {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* Row states for Promotion/Demotion */
+.promoteRow {
+  background: rgba(76, 175, 80, 0.05);
+  border-left: 3px solid #4CAF50;
+}
+.stayRow {
+  border-left: 3px solid transparent;
+}
+.demoteRow {
+  background: rgba(244, 67, 54, 0.05);
+  border-left: 3px solid #F44336;
+}
+
+.userCell {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2d3748;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.username {
+  font-weight: 500;
+}
+
+.coinsCell {
+  font-weight: bold;
+  color: #FFD700;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: #FFD700;
+  font-size: 1.5rem;
+  background: #0f1016;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 215, 0, 0.3);
+  border-radius: 50%;
+  border-top-color: #FFD700;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
