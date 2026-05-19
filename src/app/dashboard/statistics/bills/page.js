@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
-import { useCurrency } from '../../../../context/CurrencyContext';
 import { apiFetch } from '../../../../lib/api';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
@@ -14,7 +13,6 @@ const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 export default function BillStatsPage() {
   const { user } = useAuth();
-  const { displayAmount, convertToUserCurrency, userCurrency } = useCurrency();
   const router = useRouter();
   
   const [loading, setLoading] = useState(true);
@@ -30,6 +28,7 @@ export default function BillStatsPage() {
       setLoading(true);
       const res = await apiFetch(`/bills/stats`);
       setData(res.data || { trends: [], breakdown: [] });
+      console.log(res.data );
       
     } catch (err) {
       console.error('Failed to fetch bill stats', err);
@@ -78,11 +77,11 @@ export default function BillStatsPage() {
                             <BarChart data={data.trends} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} tickFormatter={(value) => displayAmount(value)} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} tickFormatter={(value) => `$${Number(value).toFixed(2)} `} />
                                 <Tooltip 
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', color: "#000" }} 
                                     cursor={{ fill: 'transparent' }} 
-                                    formatter={(value) => [displayAmount(value), 'Paid Amount']}
+                                    formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Paid Amount']}
                                 />
                                 <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} name="Paid Amount" barSize={30} />
                             </BarChart>
@@ -147,8 +146,8 @@ export default function BillStatsPage() {
                             <tr key={bill.name} className="hover:bg-gray-50 dark:hover:bg-neutral-900/50 transition">
                                 <td className="py-4 font-bold text-gray-900 dark:text-white">{bill.name}</td>
                                 <td className="py-4 text-sm font-bold text-gray-500">{bill.count} Times</td>
-                                <td className="py-4 font-black text-indigo-600">{displayAmount(bill.amount)}</td>
-                                <td className="py-4 text-right font-bold text-gray-900 dark:text-white">{displayAmount(bill.amount / 6)}</td>
+                                <td className="py-4 font-black text-indigo-600">${Number(bill.amount).toFixed(2)}</td>
+                                <td className="py-4 text-right font-bold text-gray-900 dark:text-white">${Number(bill.amount / 6).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
