@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
+import Link from 'next/link'
 
 const links = [
   { label: 'Features', href: '#features' },
@@ -60,12 +61,12 @@ export default function Navbar() {
         </nav>
 
         {/* CTA */}
-        <a
-          href="#download"
+        <Link
+          href={"/login"}
           className="rounded-full bg-[#6be6b0] px-5 py-2 text-sm font-bold text-primary-foreground transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,135,0.4)] hover:scale-[1.03] active:scale-[0.98]"
         >
-          Get app
-        </a>
+          Get Started
+        </Link>
       </div>
     </motion.header>
   )
