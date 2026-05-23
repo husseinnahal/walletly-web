@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 
 /* ──────────────────────────────────────────────
    OPTIMIZED CONFIG
@@ -9,10 +10,10 @@ import { useEffect, useRef, useState } from 'react'
 const COIN_SIZE = 40
 const GAP = 3
 const TITLE_DELAY = 1800
-const MIN_DISPLAY = 4200
+const MIN_DISPLAY = 3000
 const STAGGER_ROWS = 0.03
 const EXIT_STAGGER = 0.02
-const EXIT_DURATION = 1500
+const EXIT_DURATION = 1200
 
 /* ──────────────────────────────────────────────
    CANVAS COIN GRID
@@ -286,8 +287,8 @@ export default function SplashOpener({ onFinish }) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <div className="text-center p-8 bg-[#07090F]/5 backdrop-blur  rounded-lg " >
-                    <motion.h1
+                  {/* <div className="text-center p-8 bg-[#07090F]/5 backdrop-blur  rounded-3xl " > */}
+                    {/* <motion.h1
                       initial={{
                         opacity: 0,
                         y: 30,
@@ -333,8 +334,15 @@ export default function SplashOpener({ onFinish }) {
                       className="mt-5 text-white/45 uppercase tracking-[0.3em] text-xs sm:text-sm"
                     >
                       Your Money, Simplified
-                    </motion.p>
-                  </div>
+                    </motion.p> */}
+                  {/* <Image
+                    src="/logo.png"
+                    alt="Walletly Logo"
+                    width={300}
+                    height={300}
+                    className="w-40 h-40 sm:w-60 sm:h-60 "
+                  />
+                  </div> */}
                 </motion.div>
               )}
             </AnimatePresence>
