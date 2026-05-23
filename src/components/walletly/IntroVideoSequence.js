@@ -247,11 +247,11 @@
 
 'use client'
 
+import { motion } from 'framer-motion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Image from 'next/image'
-import { useEffect, useRef, useState,useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 const floatingCoins = [
   { left: "10%", size: 0.5, duration: 12, delay: 0, rotateDuration: 3 },
@@ -580,7 +580,7 @@ export default function IntroVideoSequence({ children }) {
         </div>
 
         <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-center px-10 md:px-20">
-          <div ref={phrase1Ref} className="opacity-0 max-w-3xl">
+          <div ref={phrase1Ref} className="opacity-0 max-w-3xl bg-[#07090F]/5 backdrop-blur-sm p-8 rounded-lg">
             <h2 className="text-5xl md:text-8xl font-bold text-white tracking-tight leading-tight drop-shadow-2xl">
               Walletly
             </h2>
@@ -589,11 +589,12 @@ export default function IntroVideoSequence({ children }) {
             </p>
           </div>
 
-          <div ref={phrase2Ref} className="opacity-0 absolute left-0 w-full flex justify-center">
+          <div ref={phrase2Ref} className="opacity-0 absolute left-0 w-full flex justify-center bg-[#07090F]/5 backdrop-blur-sm p-8 rounded-lg">
             <h2 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-tight drop-shadow-2xl text-center px-6">
               Take full control of your money
             </h2>
           </div>
+
         </div>
 
         {/* Hero Section - Hidden behind the canvas and revealed at the end */}
