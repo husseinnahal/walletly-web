@@ -1,15 +1,22 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({ username: '', email: '', phone: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { register, user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  // If already authenticated, go straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/dashboard/transactions');
+    }
+  }, [user, authLoading, router]);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -33,6 +40,9 @@ export default function RegisterPage() {
     { name: 'phone', label: 'Phone', type: 'text', placeholder: '+1 234 567 8900' },
     { name: 'password', label: 'Password', type: 'password', placeholder: '••••••••' },
   ];
+
+  // Don't flash the form while auth state is being determined
+  if (authLoading || user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
@@ -9,8 +9,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user, loading: authLoading, role } = useAuth();
   const router = useRouter();
+
+  // If already authenticated, go straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(role === 'admin' ? '/admin' : '/dashboard/transactions');
+    }
+  }, [user, authLoading, role, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,6 +34,9 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Don't flash the form while auth state is being determined
+  if (authLoading || user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

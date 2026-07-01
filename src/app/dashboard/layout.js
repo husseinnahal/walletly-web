@@ -26,16 +26,31 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
+    // Wait until auth check is complete before redirecting.
+    // Without this, a page refresh causes user=null briefly while
+    // checkSession() is still running → premature redirect to /login.
+    if (!authLoading && !user) {
+      router.replace('/login');
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
+
+  // Show a spinner while auth state is being determined
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#6be6b0]" />
+      </div>
+    );
+  }
+
+  // Auth done — no user → redirect is in flight, render nothing
+  if (!user) return null;
 
   // Close mobile sidebar on route change
   useEffect(() => {

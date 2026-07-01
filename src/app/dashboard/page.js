@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetch } from '../../lib/api';
@@ -13,7 +12,7 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('info');
-  const router = useRouter();
+  // Note: auth guard lives in layout.js — no need to duplicate it here
 
   // Categories state
   const [categories, setCategories] = useState([]);
@@ -26,10 +25,6 @@ export default function DashboardPage() {
   const [loadingCurrency, setLoadingCurrency] = useState(false);
   const [availableCurrencies, setAvailableCurrencies] = useState([]);
   const [ratesData, setRatesData] = useState(null);
-
-  useEffect(() => {
-    if (!user) router.push('/login');
-  }, [user, router]);
 
   // Fetch categories when tab becomes active
   useEffect(() => {
@@ -187,11 +182,6 @@ export default function DashboardPage() {
     }
   };
 
-  if (!user) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-blue-500"></div>
-    </div>
-  );
 
   const tabs = [
     { id: 'info',       label: '👤 Profile'    },
