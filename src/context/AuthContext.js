@@ -33,12 +33,15 @@ export function AuthProvider({ children }) {
       if (storedToken) {
         setAccessToken(storedToken);
       }
-
       // Automatically try to refresh session to get user latest data
-      const data = await apiFetch('/auth/refresh', { method: 'POST' });
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      const data = await apiFetch('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+      });
       
       if (data.success && data.accessToken) {
-        persistSession(data.accessToken);
+        persistSession(data.accessToken, data.refreshToken);
         // After refreshing token, fetch user profile
         fetchUserProfile();
       } else {
@@ -61,15 +64,19 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const persistSession = (token) => {
-    setAccessToken(token);
-    localStorage.setItem('accessToken', token);
+  const persistSession = (accessToken, refreshToken) => {
+    setAccessToken(accessToken);
+    localStorage.setItem('accessToken', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
   };
 
   const clearSession = () => {
     setUser(null);
     setAccessToken(null);
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   };
 
   const login = async (identifier, password) => {
@@ -79,7 +86,7 @@ export function AuthProvider({ children }) {
     });
     
     if (data.success) {
-      persistSession(data.accessToken);
+      persistSession(data.accessToken, data.refreshToken);
       setUser(data.data);
       return data.data; // Return user object for immediate routing decision
     }
@@ -93,7 +100,7 @@ export function AuthProvider({ children }) {
     });
     
     if (data.success) {
-      persistSession(data.accessToken);
+      persistSession(data.accessToken, data.refreshToken);
       setUser(data.data);
       return data.data;
     }
@@ -103,7 +110,11 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await apiFetch('/auth/logout', { method: 'POST' });
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      await apiFetch('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: storedRefreshToken }),
+      });
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {

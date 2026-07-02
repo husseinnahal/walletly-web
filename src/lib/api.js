@@ -43,18 +43,24 @@ export async function apiFetch(endpoint, options = {}) {
     // If unauthorized (401) and we aren't already in the middle of a refresh call
     if (response.status === 401 && endpoint !== '/auth/refresh') {
       try {
+        const storedRefreshToken = localStorage.getItem('refreshToken');
         const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: storedRefreshToken }),
           credentials: 'include',
         });
 
         if (refreshResponse.ok) {
           const refreshData = await refreshResponse.json();
           const newToken = refreshData.accessToken;
+          const newRefreshToken = refreshData.refreshToken;
           
           // Update storage so future calls use it
           localStorage.setItem('accessToken', newToken);
+          if (newRefreshToken) {
+            localStorage.setItem('refreshToken', newRefreshToken);
+          }
           
           // Notify the app that the token changed (AuthContext will listen for this)
           window.dispatchEvent(new Event('auth-token-refreshed'));
