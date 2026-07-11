@@ -396,10 +396,10 @@ export default function InvestmentsDashboard() {
                       <>
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold text-slate-600 border border-white shadow-sm overflow-hidden">
-                            {item.userId?.avatar ? <img src={item.userId.avatar} alt="" /> : item.userId?.name?.charAt(0)}
+                            {item.userId?.avatar ? <img src={item.userId.avatar} alt="" /> : item.userId?.username?.charAt(0)}
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-900">{item.userId?.name || 'Anonymous'}</p>
+                            <p className="text-xs font-bold text-slate-900">{item.userId?.username || 'Anonymous'}</p>
                             <p className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>

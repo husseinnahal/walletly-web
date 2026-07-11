@@ -9,8 +9,56 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, user, loading: authLoading, role } = useAuth();
+  const { login, loginWithGoogle, user, loading: authLoading, role } = useAuth();
   const router = useRouter();
+
+  // Load Google Sign-In SDK
+  useEffect(() => {
+    const handleGoogleSignInResponse = async (response) => {
+      setError('');
+      setLoading(true);
+      try {
+        const user = await loginWithGoogle(response.credential);
+        if (user) {
+          router.push(user.role === 'admin' ? '/admin' : '/dashboard/transactions');
+        }
+      } catch (err) {
+        setError(err.message || 'Google authentication failed');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Google Identity Services GSI Loader
+    if (typeof window !== 'undefined') {
+      const initializeGoogleBtn = () => {
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.initialize({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '825902143714-g0t37d7k9a6skpbe1378iilsc73c2df2.apps.googleusercontent.com',
+            callback: handleGoogleSignInResponse,
+          });
+
+          window.google.accounts.id.renderButton(
+            document.getElementById('googleSignInDiv'),
+            { theme: 'outline', size: 'large', width: '380', shape: 'pill' }
+          );
+        }
+      };
+
+      // Check if already loaded, otherwise poll or wait
+      if (window.google?.accounts?.id) {
+        initializeGoogleBtn();
+      } else {
+        const interval = setInterval(() => {
+          if (window.google?.accounts?.id) {
+            initializeGoogleBtn();
+            clearInterval(interval);
+          }
+        }, 150);
+        return () => clearInterval(interval);
+      }
+    }
+  }, [loginWithGoogle, router]);
 
   // If already authenticated, go straight to dashboard
   useEffect(() => {
@@ -49,6 +97,17 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-sm text-gray-500 mt-1">Sign in to your Walletly account</p>
+        </div>
+
+        {/* Google Sign In Container */}
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div id="googleSignInDiv" className="w-full min-h-[44px] flex items-center justify-center" />
+        </div>
+
+        <div className="relative flex items-center my-6">
+          <div className="flex-grow border-t border-gray-200"></div>
+          <span className="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-wider">or email</span>
+          <div className="flex-grow border-t border-gray-200"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

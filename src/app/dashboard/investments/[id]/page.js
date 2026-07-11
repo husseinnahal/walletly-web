@@ -191,10 +191,10 @@ export default function InvestmentDetailPage({ params }) {
                 <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl font-black text-emerald-600 border border-emerald-100">
                   {investment.userId?.avatar ? 
                     <img src={investment.userId.avatar} alt="" className="w-full h-full object-cover rounded-2xl" /> : 
-                    investment.userId?.name?.charAt(0)}
+                    investment.userId?.username?.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-slate-900">{investment.userId?.name || 'Anonymous'}</p>
+                  <p className="text-lg font-bold text-slate-900">{investment.userId?.username || 'Anonymous'}</p>
                   <p className="text-sm text-slate-400">Verified Member</p>
                 </div>
               </div>
@@ -204,7 +204,7 @@ export default function InvestmentDetailPage({ params }) {
                   href={`mailto:${investment.userId?.email}`}
                   className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-900 font-bold rounded-xl transition-all border border-slate-200"
                 >
-                  <span>✉️</span> Send Message
+                  <span>✉️</span> Send email
                 </a>
                 {investment.userId?.phone && (
                   <a 

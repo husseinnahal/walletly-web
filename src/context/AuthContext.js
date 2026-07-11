@@ -93,10 +93,18 @@ export function AuthProvider({ children }) {
     return null;
   };
 
-  const register = async (userData) => {
-    const data = await apiFetch('/auth/register', {
+  const initiateRegister = async (userData) => {
+    const data = await apiFetch('/auth/register/initiate', {
       method: 'POST',
       body: JSON.stringify(userData),
+    });
+    return data;
+  };
+
+  const verifyRegister = async (email, otp) => {
+    const data = await apiFetch('/auth/register/verify', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
     });
     
     if (data.success) {
@@ -104,7 +112,20 @@ export function AuthProvider({ children }) {
       setUser(data.data);
       return data.data;
     }
-    
+    return null;
+  };
+
+  const loginWithGoogle = async (idToken) => {
+    const data = await apiFetch('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (data.success) {
+      persistSession(data.accessToken, data.refreshToken);
+      setUser(data.data);
+      return data.data;
+    }
     return null;
   };
 
@@ -134,7 +155,9 @@ export function AuthProvider({ children }) {
       loading,
       role: user?.role || null,
       login,
-      register,
+      initiateRegister,
+      verifyRegister,
+      loginWithGoogle,
       logout,
       updateUser
     }}>
