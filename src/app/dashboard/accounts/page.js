@@ -118,21 +118,23 @@ export default function AccountsPage() {
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">Manage your cash, banks, and e-wallets in one place.</p>
           </div>
-          <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-2 md:gap-3">
-            <button 
-              onClick={() => setIsTransferModalOpen(true)}
-              className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 shadow-sm text-xs sm:text-sm font-medium rounded-xl text-gray-700 dark:text-black bg-white dark:bg-neutral-850 dark:hover:text-gray-100  hover:bg-gray-50 dark:hover:bg-neutral-800 transition-all flex items-center gap-1.5"
-            >
-              <span>🔄</span> Transfer
-            </button>
-            <button 
-              onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2 border border-transparent shadow-sm text-xs sm:text-sm font-bold rounded-xl text-black bg-gradient-to-r from-[#6be6b0] to-emerald-600 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-1.5"
-            >
-              <span>➕</span> Add Account
-            </button>
+        </div>
 
-          </div>
+        <div className="walletly-fab-group">
+          <button 
+            onClick={() => setIsTransferModalOpen(true)}
+            className="walletly-fab walletly-fab-secondary"
+          >
+            <span className="walletly-fab-icon">-&gt;</span>
+            <span>Transfer</span>
+          </button>
+          <button 
+            onClick={() => { setEditingAccount(null); setNewAccount({ name: '', initialBalance: 0, currency: 'USD' }); setIsAddModalOpen(true); }}
+            className="walletly-fab walletly-fab-primary"
+          >
+            <span className="walletly-fab-icon">+</span>
+            <span>Add Account</span>
+          </button>
         </div>
 
       {/* Stats Summary */}
@@ -184,17 +186,17 @@ export default function AccountsPage() {
                 <div className="flex gap-2">
                   <button 
                     onClick={() => openEditModal(acc)}
-                    className="text-slate-300 hover:text-emerald-500 transition-colors p-1"
+                    className="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition-colors hover:bg-emerald-100"
                     title="Edit Account"
                   >
-                    ✏️
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4 4 0 01-1.897 1.13L6 18l.8-2.685a4 4 0 011.13-1.897l8.932-8.931z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.5 7.125L16.875 4.5M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path></svg>
                   </button>
                   <button 
                     onClick={() => handleDeleteAccount(acc._id)}
-                    className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                    className="rounded-lg bg-red-50 p-2 text-red-600 transition-colors hover:bg-red-100"
                     title="Delete Account"
                   >
-                    🗑️
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </button>
                 </div>
               </div>

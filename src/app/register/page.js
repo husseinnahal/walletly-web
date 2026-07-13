@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -92,6 +93,8 @@ export default function RegisterPage() {
     try {
       const user = await verifyRegister(formData.email, otp);
       if (user) {
+        setFormData({ username: '', email: '', phone: '', password: '' });
+        setOtp('');
         router.push('/dashboard/transactions');
       }
     } catch (err) {
@@ -112,19 +115,17 @@ export default function RegisterPage() {
   if (authLoading || user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-8">
+    <div className="walletly-shell bg-walletly-theme min-h-screen flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md glass-strong rounded-2xl shadow-2xl p-8 border border-white/10">
         
         {step === 'register' ? (
           <>
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className="flex justify-center mb-6 relative h-20 w-full">
+                <Image src="/logo.png" alt="Walletly Logo" fill className="object-contain" priority />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Create account</h1>
-              <p className="text-sm text-gray-500 mt-1">Start managing your money with Walletly</p>
+              <h1 className="text-2xl font-bold text-white">Create account</h1>
+              <p className="text-sm text-white/50 mt-1">Start managing your money with Walletly</p>
             </div>
 
             {/* Google Register Container */}
@@ -133,15 +134,15 @@ export default function RegisterPage() {
             </div>
 
             <div className="relative flex items-center my-6">
-              <div className="flex-grow border-t border-gray-200"></div>
-              <span className="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-wider">or register manually</span>
-              <div className="flex-grow border-t border-gray-200"></div>
+              <div className="flex-grow border-t border-white/10"></div>
+              <span className="flex-shrink mx-4 text-white/40 text-xs font-bold uppercase tracking-wider">or register manually</span>
+              <div className="flex-grow border-t border-white/10"></div>
             </div>
 
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               {fields.map((f) => (
                 <div key={f.name}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
+                  <label className="block text-sm font-medium text-white/70 mb-1">{f.label}</label>
                   <input
                     type={f.type}
                     name={f.name}
@@ -149,7 +150,7 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     required
                     placeholder={f.placeholder}
-                    className="w-full text-black px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    className="w-full text-white px-4 py-2.5 border border-white/10 bg-white/5 rounded-xl text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-[#6be6b0] focus:border-[#6be6b0] transition"
                   />
                 </div>
               ))}
@@ -163,7 +164,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-2.5 px-4 bg-gradient-to-br from-[#EA7108] to-[#FDB147] hover:from-[#d96607] hover:to-[#eca542] shadow-[0_5px_15px_rgba(234,113,8,0.3)] text-white text-sm font-bold rounded-xl transition mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? 'Sending OTP...' : 'Next: Verify Email'}
               </button>
@@ -172,21 +173,19 @@ export default function RegisterPage() {
         ) : (
           <>
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-14 h-14 bg-green-100 text-green-600 rounded-2xl mb-4">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19v-8.93a2 2 0 01.89-1.664l8-5.333a2 2 0 012.22 0l8 5.333A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
-                </svg>
+              <div className="flex justify-center mb-6 relative h-20 w-full">
+                <Image src="/logo.png" alt="Walletly Logo" fill className="object-contain" priority />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Verify your Email</h1>
-              <p className="text-sm text-gray-500 mt-1.5 px-4">
+              <h1 className="text-2xl font-bold text-white">Verify your Email</h1>
+              <p className="text-sm text-white/50 mt-1.5 px-4">
                 We sent a 6-digit verification code to <br />
-                <span className="font-semibold text-gray-800">{formData.email}</span>
+                <span className="font-semibold text-white">{formData.email}</span>
               </p>
             </div>
 
             <form onSubmit={handleOtpSubmit} className="space-y-6">
               <div>
-                <label className="block text-center text-sm font-semibold text-gray-700 mb-2">Enter Verification Code</label>
+                <label className="block text-center text-sm font-semibold text-white/70 mb-2">Enter Verification Code</label>
                 <input
                   type="text"
                   maxLength={6}
@@ -194,7 +193,7 @@ export default function RegisterPage() {
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   required
                   placeholder="123456"
-                  className="w-full text-center text-black px-4 py-3 border border-gray-300 rounded-xl text-2xl font-bold tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition placeholder:opacity-30 placeholder:tracking-normal"
+                  className="w-full text-center text-white px-4 py-3 border border-white/10 bg-white/5 rounded-xl text-2xl font-bold tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-[#6be6b0] focus:border-[#6be6b0] transition placeholder:opacity-30 placeholder:tracking-normal"
                 />
               </div>
 
@@ -208,7 +207,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 6}
-                  className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 px-4 bg-gradient-to-br from-[#EA7108] to-[#FDB147] hover:from-[#d96607] hover:to-[#eca542] shadow-[0_5px_15px_rgba(234,113,8,0.3)] text-white text-sm font-bold rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Verifying...' : 'Verify & Complete Register'}
                 </button>
@@ -216,7 +215,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => { setError(''); setStep('register'); }}
-                  className="w-full py-2.5 text-center text-sm font-medium text-gray-500 hover:text-gray-700 transition"
+                  className="w-full py-2.5 text-center text-sm font-medium text-white/50 hover:text-white transition"
                 >
                   Back to Registration
                 </button>
@@ -225,9 +224,9 @@ export default function RegisterPage() {
           </>
         )}
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-white/50 mt-6">
           Already have an account?{' '}
-          <a href="/login" className="text-blue-600 font-medium hover:underline">Sign In</a>
+          <a href="/login" className="text-[#6be6b0] font-medium hover:underline">Sign In</a>
         </p>
       </div>
     </div>

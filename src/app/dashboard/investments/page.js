@@ -4,6 +4,53 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { apiFetch } from '../../../lib/api';
+import {
+  BadgeDollarSign,
+  Eye,
+  Info,
+  Pencil,
+  PieChart,
+  Rocket,
+  Trash2,
+  TrendingUp,
+  WalletCards
+} from 'lucide-react';
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim();
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
+const money = (value) =>
+  `$${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+const percent = (value) => {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? `${number}%` : `${number.toFixed(1)}%`;
+};
+
+const resolveAvatarUrl = (value) => {
+  const clean = String(value || '').trim();
+  if (!clean) return null;
+  if (/^https?:\/\//i.test(clean) || clean.startsWith('data:')) return clean;
+  return `${API_ORIGIN}/${clean.replace(/^\/+/, '')}`;
+};
+
+const typeBadgeClasses = (type) => {
+  switch (String(type || '').trim().toLowerCase()) {
+    case 'equity':
+      return 'bg-blue-500/20 text-blue-200 border-blue-300/15';
+    case 'loan':
+      return 'bg-amber-500/20 text-amber-200 border-amber-300/15';
+    case 'partnership':
+      return 'bg-purple-500/20 text-purple-200 border-purple-300/15';
+    default:
+      return 'bg-white/12 text-white border-white/15';
+  }
+};
+
+const ownerName = (item) => item?.postedBy || item?.userId?.username || item?.owner?.username || 'Anonymous';
+const ownerAvatar = (item) => item?.avatar || item?.userId?.avatar || item?.owner?.avatar;
+const viewedCount = (item) => item?.viewedByCount ?? item?.views ?? 0;
+const investmentId = (item) => item?._id || item?.id;
 
 export default function InvestmentsDashboard() {
   const router = useRouter();
@@ -181,6 +228,127 @@ export default function InvestmentsDashboard() {
     }
   };
 
+  const totalRequired = investments.reduce((sum, item) => sum + (Number(item.requiredAmount) || 0), 0);
+  const activeCount = investments.filter((item) => item.isAvailable).length;
+  const categoryLabel = (category) => {
+    switch (category) {
+      case 'tech': return 'Tech';
+      case 'food': return 'Food';
+      case 'ecommerce': return 'Shop';
+      case 'service': return 'Service';
+      default: return 'Idea';
+    }
+  };
+
+  const renderInfoBlock = (label, value, Icon) => (
+    <div className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-3">
+      <Icon className="mb-2 h-4 w-4 text-[#EA7108]/80" />
+      <p className="truncate text-[9px] font-extrabold uppercase tracking-wide text-white/45">{label}</p>
+      <p className="mt-0.5 truncate text-[11px] font-black text-white/95">{value}</p>
+    </div>
+  );
+
+  const renderInvestmentCard = (item) => {
+    const id = investmentId(item);
+    const type = String(item.investmentType || '').trim().toLowerCase();
+    const avatar = resolveAvatarUrl(ownerAvatar(item));
+    const name = ownerName(item);
+    const initial = name.trim().charAt(0).toUpperCase() || '?';
+    const thirdMetric =
+      type === 'equity'
+        ? { label: 'Equity', value: percent(item.equityOffered), icon: PieChart }
+        : type === 'loan'
+          ? { label: 'Return', value: percent(item.expectedReturn), icon: TrendingUp }
+          : { label: viewedCount(item) ? 'Views' : 'Stage', value: viewedCount(item) ? String(viewedCount(item)) : String(item.stage || '').toUpperCase(), icon: viewedCount(item) ? Eye : Rocket };
+
+    return (
+      <div
+        key={item._id}
+        onClick={() => id && router.push(`/dashboard/investments/${id}`)}
+        className={`group relative cursor-pointer overflow-hidden rounded-xl border border-white/15 bg-gradient-to-br from-white/[0.10] to-white/[0.04] p-[1.1rem] shadow-[0_18px_46px_rgba(0,0,0,0.26)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-[#6be6b0]/30 ${item.isAvailable ? 'opacity-100' : 'opacity-55'}`}
+      >
+        <div className={`absolute right-0 top-0 rounded-bl-xl border px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider ${typeBadgeClasses(type)}`}>
+          {item.investmentType || 'Investment'}
+        </div>
+
+        <div className="flex items-center gap-3 pr-20">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/10 text-[11px] font-black text-[#EA7108]">
+            {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initial}
+          </div>
+          <h3 className="truncate text-[19px] font-black tracking-normal text-white">{item.title}</h3>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          {renderInfoBlock('Required', money(item.requiredAmount), WalletCards)}
+          {Number(item.minInvestment) > 0 && renderInfoBlock('Minimum', money(item.minInvestment), BadgeDollarSign)}
+          {renderInfoBlock(thirdMetric.label, thirdMetric.value, thirdMetric.icon)}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.055] px-3.5 py-3">
+          <p className="truncate text-[13px] font-medium leading-relaxed text-white/75">{item.description}</p>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (id) router.push(`/dashboard/investments/${id}`);
+            }}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#6be6b0] px-3 py-2.5 text-sm font-extrabold text-[#063015] transition hover:brightness-105"
+          >
+            <Info className="h-4 w-4" />
+            Details
+          </button>
+
+          {view === 'my' && (
+            <>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleOpenEditModal(item);
+                }}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/10 px-3 py-2.5 text-sm font-extrabold text-white transition hover:bg-white/15"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleDelete(item._id);
+                }}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500/85 px-3 py-2.5 text-sm font-extrabold text-white transition hover:bg-red-500"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </>
+          )}
+        </div>
+
+        {view === 'my' && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleToggleAvailability(item._id);
+            }}
+            className={`mt-3 w-full rounded-2xl border px-3 py-2.5 text-sm font-black transition ${
+              item.isAvailable
+                ? 'border-red-400/30 bg-red-500/15 text-red-300 hover:bg-red-500/20'
+                : 'border-emerald-400/30 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20'
+            }`}
+          >
+            {item.isAvailable ? 'Deactivate Investment' : 'Activate Investment'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       {/* Header */}
@@ -191,21 +359,24 @@ export default function InvestmentsDashboard() {
           </h1>
           <p className="text-slate-500 text-sm mt-1">Connect with ideas and investors worldwide</p>
         </div>
+      </div>
+
+      <div className="walletly-fab-group">
         <button 
           onClick={handleOpenCreateModal}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl transition-all shadow-lg shadow-emerald-200"
+          className="walletly-fab walletly-fab-primary"
         >
-          <span>➕</span>
-          Post New Idea
+          <span className="walletly-fab-icon">+</span>
+          <span>Post Idea</span>
         </button>
       </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white p-5 rounded-[1.65rem] shadow-sm border border-slate-100 overflow-hidden relative">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-50 text-2xl rounded-xl">
-              💼
+            <div className="h-14 w-14 shrink-0 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <WalletCards className="h-6 w-6" />
             </div>
             <div>
               <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Available Opportunities</p>
@@ -213,30 +384,29 @@ export default function InvestmentsDashboard() {
             </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white p-5 rounded-[1.65rem] shadow-sm border border-slate-100 overflow-hidden relative">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-50 text-2xl rounded-xl">
-              👥
+            <div className="h-14 w-14 shrink-0 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center">
+              <Rocket className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">number of investments</p>
-              <h3 className="text-2xl font-bold text-slate-900">{ investments.length}</h3>
+              <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Active Listings</p>
+              <h3 className="text-2xl font-bold text-slate-900">{activeCount}</h3>
             </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white p-5 rounded-[1.65rem] shadow-sm border border-slate-100 overflow-hidden relative">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-50 text-2xl rounded-xl">
-              📊
+            <div className="h-14 w-14 shrink-0 rounded-2xl bg-slate-50 text-slate-700 flex items-center justify-center">
+              <BadgeDollarSign className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">My Total Views</p>
-              <h3 className="text-2xl font-bold text-slate-900">1,204</h3>
+              <p className="text-slate-500 text-xs font-medium uppercase tracking-wider">Capital Listed</p>
+              <h3 className="text-2xl font-bold text-slate-900">${totalRequired.toLocaleString()}</h3>
             </div>
           </div>
         </div>
       </div>
-
       {/* Tabs and Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
         <div className="flex flex-col lg:flex-row items-center border-b border-slate-100">
@@ -342,102 +512,8 @@ export default function InvestmentsDashboard() {
               <p className="text-slate-500 max-w-xs mx-auto">Try adjusting your filters or search terms to find what you're looking for.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {investments.map((item) => (
-                <div 
-                  key={item._id} 
-                  onClick={() => router.push(`/dashboard/investments/${item._id}`)}
-                  className="group bg-white rounded-2xl border border-slate-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all duration-300 overflow-hidden flex flex-col cursor-pointer"
-                >
-                  <div className="p-5 flex-1">
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-3xl p-2 bg-slate-50 rounded-xl group-hover:bg-emerald-50 transition-colors">
-                        {getCategoryIcon(item.category)}
-                      </span>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border ${getStageColor(item.stage)}`}>
-                          {item.stage}
-                        </span>
-                        {item.isAvailable ? (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                            AVAILABLE
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
-                            UNAVAILABLE
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors mb-2 line-clamp-1">
-                      {item.title}
-                    </h3>
-                    <p className="text-slate-500 text-sm mb-6 line-clamp-3 leading-relaxed">
-                      {item.description}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-                      <div>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight mb-1">Required</p>
-                        <p className="text-sm font-bold text-slate-900">${item.requiredAmount.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight mb-1">Type</p>
-                        <p className="text-sm font-bold text-slate-900 capitalize">{item.investmentType}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Footer */}
-                  <div className="px-5 py-4 bg-slate-50/50 flex items-center justify-between mt-auto">
-                    {view === 'marketplace' ? (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold text-slate-600 border border-white shadow-sm overflow-hidden">
-                            {item.userId?.avatar ? <img src={item.userId.avatar} alt="" /> : item.userId?.username?.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">{item.userId?.username || 'Anonymous'}</p>
-                            <p className="text-[10px] text-slate-400">{new Date(item.createdAt).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-slate-400">
-                          <span className="text-xs">👁️</span>
-                          <span className="text-xs font-medium">{item.views}</span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-4">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleToggleAvailability(item._id); }}
-                            className={`flex items-center gap-1.5 text-lg font-bold transition-colors ${item.isAvailable ? 'text-emerald-600' : 'text-slate-400'}`}
-                          >
-                            {item.isAvailable ? '🟢' : '⚪'}
-                            <span className="text-xs">{item.isAvailable ? 'Active' : 'Paused'}</span>
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleOpenEditModal(item); }}
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          >
-                            ✏️
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              {investments.map((item) => renderInvestmentCard(item))}
             </div>
           )}
         </div>

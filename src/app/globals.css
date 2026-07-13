@@ -28,6 +28,10 @@
   --glass-bg: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.07);
   --surface: #121212;
+  --walletly-deep: #080a0d;
+  --walletly-forest: #0b1914;
+  --walletly-mint: #6be6b0;
+  --walletly-coin: #EA7108;
 }
 
 @theme inline {
@@ -179,6 +183,346 @@
     linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
   background-size: 60px 60px;
+}
+
+.bg-walletly-theme {
+  background-color: #0A120F;
+  background-image:
+    radial-gradient(circle at 90% -10%, rgba(104, 239, 207, 0.16) 0%, transparent 34rem),
+    radial-gradient(circle at 8% 12%, rgba(234, 113, 8, 0.13) 0%, transparent 28rem),
+    linear-gradient(180deg, rgba(9, 28, 21, 0.92), rgba(6, 8, 9, 0.98));
+}
+
+
+.walletly-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.walletly-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(107, 230, 176, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(107, 230, 176, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(circle at 55% 18%, black, transparent 78%);
+}
+
+@layer components {
+  .walletly-shell aside,
+  .walletly-shell header {
+    background: rgba(8, 12, 10, 0.86) !important;
+    border-color: rgba(107, 230, 176, 0.10) !important;
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  .walletly-shell main {
+    background: transparent;
+  }
+
+  .walletly-feature-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    background:
+      linear-gradient(135deg, rgba(107, 230, 176, 0.13), rgba(234, 113, 8, 0.07)),
+      rgba(10, 18, 15, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.30);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  .walletly-feature-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto -5rem -6rem auto;
+    width: 16rem;
+    height: 16rem;
+    border-radius: 999px;
+    background: rgba(107, 230, 176, 0.12);
+    filter: blur(48px);
+    pointer-events: none;
+  }
+
+  .walletly-feature-image {
+    position: relative;
+    width: 86px;
+    height: 86px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 22px;
+    background: radial-gradient(circle at 45% 30%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04) 62%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 38px rgba(0, 0, 0, 0.24);
+  }
+
+  .walletly-feature-icon {
+    width: 42px;
+    height: 42px;
+    color: var(--walletly-mint);
+    filter: drop-shadow(0 0 18px rgba(107, 230, 176, 0.32));
+  }
+
+  .walletly-coiny-progress {
+    width: min(100%, 260px);
+    flex: 0 0 auto;
+    border-radius: 20px;
+    padding: 0.9rem;
+    background: rgba(0, 0, 0, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .walletly-fab-group {
+    position: fixed;
+    right: clamp(1rem, 3vw, 2rem);
+    bottom: clamp(1rem, 3vw, 2rem);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+    pointer-events: none;
+  }
+
+  .walletly-fab {
+    min-height: 3.3rem;
+    min-width: 3.3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    padding: 0 1rem;
+    color: #f8fafc;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.11);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, filter 180ms ease;
+    pointer-events: auto;
+  }
+
+  .walletly-fab:hover {
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(107, 230, 176, 0.28);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42), 0 0 34px rgba(107, 230, 176, 0.12);
+  }
+
+  .walletly-fab:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .walletly-fab-icon {
+    width: 2.05rem;
+    height: 2.05rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.15);
+    font-size: 1rem;
+    flex: 0 0 auto;
+  }
+
+  .walletly-fab-primary {
+    background: linear-gradient(135deg, #6be6b0, #26d394) !important;
+    color: #06100c !important;
+  }
+
+  .walletly-fab-primary .walletly-fab-icon {
+    background: rgba(6, 16, 12, 0.10);
+  }
+
+  .walletly-fab-orange {
+    background: linear-gradient(135deg, #EA7108, #f59e0b) !important;
+    color: #ffffff !important;
+  }
+
+  .walletly-fab-secondary {
+    background: rgba(12, 18, 15, 0.86) !important;
+    color: #ffffff !important;
+  }
+
+  @media (max-width: 640px) {
+    .walletly-fab-group {
+      right: 0.9rem;
+      bottom: 0.9rem;
+      gap: 0.6rem;
+    }
+
+    .walletly-fab {
+      min-height: 3rem;
+      padding: 0 0.85rem;
+      font-size: 0.72rem;
+    }
+
+    .walletly-fab-icon {
+      width: 1.85rem;
+      height: 1.85rem;
+    }
+  }
+
+  .walletly-shell main > .walletly-feature-hero + div > div > :first-child > h1,
+  .walletly-shell main > .walletly-feature-hero + div > div > :first-child > p:first-of-type,
+  .walletly-shell main > .walletly-feature-hero + div > :first-child > h1,
+  .walletly-shell main > .walletly-feature-hero + div > :first-child > p:first-of-type {
+    display: none !important;
+  }
+
+  .walletly-shell main > .walletly-feature-hero + div > div > :first-child:has(h1),
+  .walletly-shell main > .walletly-feature-hero + div > :first-child:has(h1) {
+    display: contents !important;
+  }
+
+  .walletly-shell main > .walletly-feature-hero + div > div > :first-child:has(h1) > div:first-child,
+  .walletly-shell main > .walletly-feature-hero + div > :first-child:has(h1) > div:first-child {
+    display: none !important;
+  }
+
+  .walletly-shell main > [class*="min-h-screen"] {
+    background: transparent !important;
+    color: #f8fafc;
+  }
+
+  .walletly-shell main [class~="bg-white"],
+  .walletly-shell main [class~="dark:bg-neutral-800"],
+  .walletly-shell main [class~="dark:bg-neutral-900"],
+  .walletly-shell main [class~="bg-neutral-800"],
+  .walletly-shell main [class~="bg-neutral-900"] {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025)),
+      rgba(12, 18, 15, 0.76) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 20px 60px rgba(0, 0, 0, 0.28) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .walletly-shell main [class~="bg-gray-50"],
+  .walletly-shell main [class~="bg-slate-50"],
+  .walletly-shell main [class~="dark:bg-neutral-700"],
+  .walletly-shell main [class~="dark:bg-neutral-850"] {
+    background: rgba(255, 255, 255, 0.055) !important;
+    border-color: rgba(255, 255, 255, 0.09) !important;
+  }
+
+  .walletly-shell main input,
+  .walletly-shell main select,
+  .walletly-shell main textarea {
+    background: rgba(255, 255, 255, 0.055) !important;
+    border-color: rgba(255, 255, 255, 0.11) !important;
+    color: #f8fafc !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .walletly-shell main input::placeholder,
+  .walletly-shell main textarea::placeholder {
+    color: rgba(226, 232, 240, 0.44) !important;
+  }
+
+  .walletly-shell main option {
+    background: #0b120f;
+    color: #f8fafc;
+  }
+
+  .walletly-shell main [class~="text-gray-900"],
+  .walletly-shell main [class~="text-slate-900"],
+  .walletly-shell main [class~="dark:text-white"] {
+    color: #f8fafc !important;
+  }
+
+  .walletly-shell main [class~="text-gray-700"],
+  .walletly-shell main [class~="text-slate-800"],
+  .walletly-shell main [class~="dark:text-neutral-300"] {
+    color: rgba(226, 232, 240, 0.84) !important;
+  }
+
+  .walletly-shell main [class~="text-gray-500"],
+  .walletly-shell main [class~="text-gray-400"],
+  .walletly-shell main [class~="text-slate-500"],
+  .walletly-shell main [class~="text-slate-400"],
+  .walletly-shell main [class~="dark:text-gray-400"],
+  .walletly-shell main [class~="dark:text-neutral-400"] {
+    color: rgba(203, 213, 225, 0.62) !important;
+  }
+
+  .walletly-shell main [class~="text-blue-600"],
+  .walletly-shell main [class~="text-indigo-600"],
+  .walletly-shell main [class~="text-purple-600"],
+  .walletly-shell main [class~="dark:text-purple-400"],
+  .walletly-shell main [class~="dark:text-blue-400"] {
+    color: #6be6b0 !important;
+  }
+
+  .walletly-shell main [class~="from-indigo-600"],
+  .walletly-shell main [class~="from-purple-600"],
+  .walletly-shell main [class~="from-blue-600"],
+  .walletly-shell main [class~="bg-indigo-600"],
+  .walletly-shell main [class~="bg-purple-600"],
+  .walletly-shell main [class~="bg-blue-600"] {
+    background: linear-gradient(135deg, #EA7108, #f59e0b) !important;
+    color: #fff !important;
+    box-shadow: 0 18px 45px rgba(234, 113, 8, 0.20) !important;
+  }
+
+  .walletly-shell main [class~="from-green-600"],
+  .walletly-shell main [class~="from-emerald-600"],
+  .walletly-shell main [class~="bg-emerald-600"],
+  .walletly-shell main [class~="bg-green-600"] {
+    background: linear-gradient(135deg, #6be6b0, #26d394) !important;
+    color: #07100c !important;
+    box-shadow: 0 18px 45px rgba(107, 230, 176, 0.16) !important;
+  }
+
+  .walletly-shell main [class*="rounded-3xl"],
+  .walletly-shell main [class*="rounded-[2rem]"],
+  .walletly-shell main [class*="rounded-[2.5rem]"] {
+    border-radius: 22px !important;
+  }
+
+  .walletly-shell main [class*="rounded-2xl"] {
+    border-radius: 18px !important;
+  }
+
+  .walletly-shell main [class*="hover:shadow"],
+  .walletly-shell main [class*="hover:-translate-y"] {
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease !important;
+  }
+
+  .walletly-shell main [class*="hover:shadow"]:hover,
+  .walletly-shell main [class*="hover:-translate-y"]:hover {
+    transform: translateY(-2px);
+    border-color: rgba(107, 230, 176, 0.22) !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34), 0 0 34px rgba(107, 230, 176, 0.08) !important;
+  }
+
+  .walletly-shell main [class~="border-gray-100"],
+  .walletly-shell main [class~="border-gray-200"],
+  .walletly-shell main [class~="border-slate-100"],
+  .walletly-shell main [class~="dark:border-neutral-700"],
+  .walletly-shell main [class~="dark:border-neutral-800"] {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .walletly-shell main [class~="shadow-gray-200/50"],
+  .walletly-shell main [class~="shadow-indigo-500/20"],
+  .walletly-shell main [class~="shadow-purple-500/20"],
+  .walletly-shell main [class~="shadow-emerald-100"] {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30) !important;
+  }
 }
 
 .grid-bg {

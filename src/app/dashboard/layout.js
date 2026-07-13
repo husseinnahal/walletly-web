@@ -3,8 +3,24 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../lib/api';
+import logoAsset from '../../../assets/images/logo.png';
+import flowAsset from '../../../assets/images/flow.png';
+import budgetsAsset from '../../../assets/images/budgets.png';
+import savingsAsset from '../../../assets/images/savings.png';
+import debtsAsset from '../../../assets/images/debts.png';
+import billsAsset from '../../../assets/images/bills.png';
+import metalsAsset from '../../../assets/images/metals.png';
+import investAsset from '../../../assets/images/invest.png';
+import fateAsset from '../../../assets/images/fate.png';
+import chatbotAsset from '../../../assets/images/coinyChatbot.png';
+import coinyOpenAsset from '../../../assets/images/coinyOpen.png';
+import coinyWavingAsset from '../../../assets/images/coinyWaving.png';
+import challengeAsset from '../../../assets/images/challenges/coiny_challenge.png';
+import statsIcon from '../../../assets/icons/stats.svg';
+import userIcon from '../../../assets/icons/user.svg';
 import { 
   User, 
   ArrowLeftRight, 
@@ -22,7 +38,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  CircleHelp
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
@@ -30,6 +47,7 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [featureProgress, setFeatureProgress] = useState(null);
 
   useEffect(() => {
     // Wait until auth check is complete before redirecting.
@@ -40,69 +58,126 @@ export default function DashboardLayout({ children }) {
     }
   }, [user, authLoading, router]);
 
-  // Close mobile sidebar on route change
-  // Must be declared before any early returns (Rules of Hooks)
-  useEffect(() => {
-    setIsMobileOpen(false);
-  }, [pathname]);
-
-  // Show a spinner while auth state is being determined
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#6be6b0]" />
-      </div>
-    );
-  }
-
-  // Auth done — no user → redirect is in flight, render nothing
-  if (!user) return null;
-
   const navSections = [
     {
       title: 'Finance & Planning',
       items: [
-        { label: 'Transactions', path: '/dashboard/transactions', icon: ArrowLeftRight, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
-        { label: 'Budgets', path: '/dashboard/budgets', icon: PieChart, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
-        { label: 'Savings Goals', path: '/dashboard/savings', icon: Target, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
-        { label: 'Debt & Credit', path: '/dashboard/debt', icon: Scale, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
-        { label: 'Bills & Payments', path: '/dashboard/bills', icon: Calendar, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Transactions', path: '/dashboard/transactions', icon: ArrowLeftRight, visual: flowAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Budgets', path: '/dashboard/budgets', icon: PieChart, visual: budgetsAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Savings Goals', path: '/dashboard/savings', icon: Target, visual: savingsAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
+        { label: 'Debt & Credit', path: '/dashboard/debt', icon: Scale, visual: debtsAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
+        { label: 'Bills & Payments', path: '/dashboard/bills', icon: Calendar, visual: billsAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
         { label: 'My Accounts', path: '/dashboard/accounts', icon: Wallet, activeColor: 'bg-neutral-800 text-white border-neutral-700', glowColor: 'text-white' },
-        { label: 'Stats Overview', path: '/dashboard/statistics', icon: TrendingUp, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
+        { label: 'Stats Overview', path: '/dashboard/statistics', icon: TrendingUp, visual: statsIcon, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
       ]
     },
     {
       title: 'Wealth & Assets',
       items: [
-        { label: 'Metal Assets', path: '/dashboard/metals', icon: Coins, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
-        { label: 'Investments', path: '/dashboard/investments', icon: LineChart, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Metal Assets', path: '/dashboard/metals', icon: Coins, visual: metalsAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
+        { label: 'Investments', path: '/dashboard/investments', icon: LineChart, visual: investAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
       ]
     },
     {
       title: 'Tools & AI',
       items: [
-        { label: 'Play & Earn', path: '/dashboard/gamification', icon: Trophy, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
-        { label: 'AI Voice & Chat', path: '/dashboard/chatbot', icon: Bot, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Play & Earn', path: '/dashboard/gamification', icon: Trophy, visual: challengeAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
+        { label: 'Fate Ball', path: '/dashboard/fate', icon: CircleHelp, visual: fateAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
+        { label: 'AI Voice & Chat', path: '/dashboard/chatbot', icon: Bot, visual: chatbotAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
       ]
     },
     {
       title: 'Security & Preferences',
       items: [
         { label: 'App Security', path: '/dashboard/security', icon: Shield, activeColor: 'bg-neutral-850 text-neutral-200 border-neutral-800', glowColor: 'text-neutral-250' },
-        { label: 'Settings & Profile', path: '/dashboard', icon: User, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Settings & Profile', path: '/dashboard', icon: User, visual: userIcon, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
       ]
     }
   ];
 
+  const featureMetas = [
+    { path: '/dashboard/transactions', title: 'Transactions', subtitle: 'Track daily money flow with Coiny by your side.', visual: flowAsset, icon: ArrowLeftRight, accent: '#6be6b0' },
+    { path: '/dashboard/budgets', title: 'Budgets', subtitle: 'Watch your spending limits and renewal progress.', visual: budgetsAsset, icon: PieChart, accent: '#6be6b0', progressLabel: 'Budget Usage' },
+    { path: '/dashboard/savings', title: 'Savings Goals', subtitle: 'Build each goal step by step with Coiny progress.', visual: savingsAsset, icon: Target, accent: '#EA7108', progressLabel: 'Savings Progress' },
+    { path: '/dashboard/debt', title: 'Debt & Credit', subtitle: 'Keep payables, receivables, and repayment progress clear.', visual: debtsAsset, icon: Scale, accent: '#EA7108' },
+    { path: '/dashboard/bills', title: 'Bills & Payments', subtitle: 'Stay ahead of due dates and recurring obligations.', visual: billsAsset, icon: Calendar, accent: '#6be6b0' },
+    { path: '/dashboard/accounts', title: 'My Accounts', subtitle: 'See your liquidity and movement across wallets.', icon: Wallet, accent: '#6be6b0' },
+    { path: '/dashboard/statistics', title: 'Stats Overview', subtitle: 'Turn your Walletly activity into readable insights.', visual: statsIcon, icon: TrendingUp, accent: '#EA7108' },
+    { path: '/dashboard/metals', title: 'Metal Assets', subtitle: 'Follow gold and silver holdings with live portfolio energy.', visual: metalsAsset, icon: Coins, accent: '#EA7108' },
+    { path: '/dashboard/investments', title: 'Investments', subtitle: 'Keep assets and opportunities organized in one view.', visual: investAsset, icon: LineChart, accent: '#6be6b0' },
+    { path: '/dashboard/gamification', title: 'Play & Earn', subtitle: 'Complete challenges, earn coins, and grow your streak.', visual: challengeAsset, icon: Trophy, accent: '#EA7108' },
+    { path: '/dashboard/fate', title: 'Fate Ball', subtitle: 'Let Coiny help you choose when decisions feel stuck.', visual: fateAsset, icon: CircleHelp, accent: '#EA7108' },
+    { path: '/dashboard/chatbot', title: 'AI Voice & Chat', subtitle: 'Ask Coiny to help log, explain, and understand your money.', visual: chatbotAsset, icon: Bot, accent: '#6be6b0' },
+    { path: '/dashboard/security', title: 'App Security', subtitle: 'Protect your Walletly space and account preferences.', visual: coinyWavingAsset, icon: Shield, accent: '#6be6b0' },
+    { path: '/dashboard/settings', title: 'Settings', subtitle: 'Tune your Walletly preferences for the way you manage money.', visual: coinyOpenAsset, icon: Settings, accent: '#6be6b0' },
+    { path: '/dashboard', title: 'Settings & Profile', subtitle: 'Manage profile details, categories, security, and currency.', visual: userIcon, icon: User, accent: '#6be6b0' },
+  ];
+
+  const activeFeature = featureMetas
+    .filter((feature) => pathname === feature.path || (feature.path !== '/dashboard' && pathname.startsWith(`${feature.path}/`)))
+    .sort((a, b) => b.path.length - a.path.length)[0] || featureMetas[featureMetas.length - 1];
+  const ActiveFeatureIcon = activeFeature.icon || Wallet;
+  const showsBackendProgress = activeFeature.path === '/dashboard/budgets' || activeFeature.path === '/dashboard/savings';
+  const activeProgress = Math.min(Math.max(Number(featureProgress) || 0, 0), 100);
+
+  const loadFeatureProgress = useCallback(async () => {
+    if (!user || !showsBackendProgress) {
+      setFeatureProgress(null);
+      return;
+    }
+
+    try {
+      if (activeFeature.path === '/dashboard/budgets') {
+        const res = await apiFetch('/budgets');
+        const budgets = res.data?.budgets || [];
+        const totalLimit = budgets.reduce((sum, budget) => sum + (Number(budget.amount) || 0), 0);
+        const totalSpent = budgets.reduce((sum, budget) => sum + (Number(budget.spent) || 0), 0);
+        setFeatureProgress(totalLimit > 0 ? Math.round((totalSpent / totalLimit) * 100) : 0);
+        return;
+      }
+
+      if (activeFeature.path === '/dashboard/savings') {
+        const res = await apiFetch('/savings');
+        const savings = res.data || {};
+        const totalTarget = Number(savings.totalTarget) || 0;
+        const totalSaved = Number(savings.totalSaved) || 0;
+        setFeatureProgress(totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0);
+      }
+    } catch {
+      setFeatureProgress(0);
+    }
+  }, [activeFeature.path, showsBackendProgress, user]);
+
+  useEffect(() => {
+    loadFeatureProgress();
+  }, [loadFeatureProgress]);
+
+  useEffect(() => {
+    window.addEventListener('walletly-feature-progress-refresh', loadFeatureProgress);
+    return () => window.removeEventListener('walletly-feature-progress-refresh', loadFeatureProgress);
+  }, [loadFeatureProgress]);
+
+  // Show a spinner while auth state is being determined
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-walletly-theme flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-[#6be6b0]" />
+      </div>
+    );
+  }
+
+  // Auth done; no user means the redirect is in flight.
+  if (!user) return null;
+
   return (
-    <div className="flex h-screen bg-[#242424] text-neutral-100 overflow-hidden font-sans">
+    <div className="walletly-shell bg-walletly-theme flex h-screen text-neutral-100 overflow-hidden font-sans">
       
       {/* ── Desktop Sidebar ── */}
       <aside className="hidden md:flex flex-col w-64 bg-[#0e0e0e] border-r border-neutral-900 shrink-0">
         {/* Brand Header */}
         <div className="p-6 border-b border-neutral-900 flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-tr from-[#6be6b0] to-[#EA7108] rounded-2xl flex items-center justify-center text-black font-extrabold shadow-lg shadow-[#6be6b0]/10">
-            <Image src="/logo.png" alt="Walletly Logo" width={20} height={20} className="object-contain" />
+            <Image src={logoAsset} alt="Walletly Logo" width={20} height={20} className="object-contain" />
           </div>
           <div>
             <h1 className="text-base font-black text-white tracking-tight uppercase">Walletly</h1>
@@ -151,7 +226,17 @@ export default function DashboardLayout({ children }) {
                           : 'text-neutral-400 hover:text-white hover:bg-neutral-900/40 hover:border-neutral-900/50'
                       }`}
                     >
-                      <Icon className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${isActive ? item.glowColor : 'text-neutral-500 group-hover:text-neutral-300'}`} />
+                      {item.visual ? (
+                        <span className={`relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border transition-transform duration-200 group-hover:scale-105 ${
+                          isActive ? 'border-current bg-white/8' : 'border-white/5 bg-white/5'
+                        }`}>
+                          <Image src={item.visual} alt="" fill sizes="28px" className="object-contain p-1" />
+                        </span>
+                      ) : (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                          <Icon className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${isActive ? item.glowColor : 'text-neutral-500 group-hover:text-neutral-300'}`} />
+                        </span>
+                      )}
                       <span>{item.label}</span>
                     </Link>
                   );
@@ -259,13 +344,24 @@ export default function DashboardLayout({ children }) {
                           <Link
                             key={item.path}
                             href={item.path}
+                            onClick={() => setIsMobileOpen(false)}
                             className={`flex items-center gap-3 px-4 py-2.5 text-xs font-bold rounded-xl border border-transparent transition-all duration-200 group ${
                               isActive
                                 ? `${item.activeColor} shadow-md`
                                 : 'text-neutral-400 hover:text-white hover:bg-neutral-900/40 hover:border-neutral-900/50'
                             }`}
                           >
-                            <Icon className={`w-4 h-4 transition-transform duration-200 group-hover:scale-110 ${isActive ? item.glowColor : 'text-neutral-500 group-hover:text-neutral-300'}`} />
+                            {item.visual ? (
+                              <span className={`relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border transition-transform duration-200 group-hover:scale-105 ${
+                                isActive ? 'border-current bg-white/8' : 'border-white/5 bg-white/5'
+                              }`}>
+                                <Image src={item.visual} alt="" fill sizes="28px" className="object-contain p-1" />
+                              </span>
+                            ) : (
+                              <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                                <Icon className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${isActive ? item.glowColor : 'text-neutral-500 group-hover:text-neutral-300'}`} />
+                              </span>
+                            )}
                             <span>{item.label}</span>
                           </Link>
                         );
@@ -290,7 +386,41 @@ export default function DashboardLayout({ children }) {
         )}
 
         {/* ── Scrollable Content Area ── */}
-        <main className="flex-1 overflow-y-auto focus:outline-none bg-[#080808]">
+        <main className="flex-1 overflow-y-auto focus:outline-none bg-transparent" data-feature-path={activeFeature.path}>
+          <section className="walletly-feature-hero mx-auto mt-5 w-[min(1120px,calc(100%-2rem))] px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="walletly-feature-image">
+                  {activeFeature.visual ? (
+                    <Image src={activeFeature.visual} alt="" fill sizes="112px" className="object-contain p-2" priority />
+                  ) : (
+                    <ActiveFeatureIcon className="walletly-feature-icon" strokeWidth={2.4} />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">{activeFeature.title}</h2>
+                  <p className="mt-1 max-w-xl text-sm font-medium text-slate-300/75">{activeFeature.subtitle}</p>
+                </div>
+              </div>
+
+              {showsBackendProgress && (
+              <div className="walletly-coiny-progress" style={{ '--feature-accent': activeFeature.accent }}>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{activeFeature.progressLabel}</p>
+                    <p className="mt-1 text-lg font-black text-white">{activeProgress}%</p>
+                  </div>
+                  <div className="relative h-12 w-12 shrink-0">
+                    <Image src={coinyWavingAsset} alt="" fill sizes="48px" className="object-contain" />
+                  </div>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-[var(--feature-accent)] shadow-[0_0_18px_var(--feature-accent)]" style={{ width: `${activeProgress}%` }} />
+                </div>
+              </div>
+              )}
+            </div>
+          </section>
           {children}
         </main>
       </div>
@@ -298,3 +428,4 @@ export default function DashboardLayout({ children }) {
     </div>
   );
 }
+

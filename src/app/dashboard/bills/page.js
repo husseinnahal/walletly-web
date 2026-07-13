@@ -1,10 +1,37 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { apiFetch } from '../../../lib/api';
 import { getCurrencies } from '../../../lib/currencies';
+import billsAsset from '../../../../assets/images/bills.png';
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim();
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
+const resolveBackendImage = (image) => {
+  if (!image) return null;
+
+  const raw =
+    typeof image === 'string'
+      ? image
+      : image.url || image.secure_url || image.path || image.src || image.filename || '';
+
+  const value = String(raw).trim();
+  if (!value) return null;
+  if (value.startsWith('data:') || value.startsWith('blob:')) return value;
+  if (/^https?:\/\//i.test(value)) return value;
+
+  const normalized = value.replace(/\\/g, '/').replace(/^public\//, '');
+  return `${API_ORIGIN}/${normalized.replace(/^\/+/, '')}`;
+};
+
+const getBillImage = (bill) =>
+  resolveBackendImage(
+    bill?.image || bill?.imageUrl || bill?.photo || bill?.receiptImage || bill?.receipt || bill?.logo
+  );
 
 export default function BillsPage() {
   const { user } = useAuth();
@@ -184,7 +211,10 @@ const applyFilters = (bill) => {
   const filteredUpcoming = (bills.upcoming || []).filter(applyFilters);
   const filteredOthers = (bills.others || []).filter(applyFilters);
 
-  const renderBillCard = (bill) => (
+  const renderBillCard = (bill) => {
+    const billImage = getBillImage(bill);
+
+    return (
     <div key={bill._id} className="bg-white dark:bg-neutral-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-neutral-700 transition-all hover:shadow-md relative overflow-hidden">
       {/* Status Indicator */}
       <div className={`absolute top-0 right-0 px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-bl-2xl ${
@@ -198,13 +228,24 @@ const applyFilters = (bill) => {
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-4">
           <div className="relative group/img">
-            {bill.image ? (
-              <img src={bill.image} alt={bill.name} className="w-16 h-16 rounded-2xl object-cover shadow-md" />
-            ) : (
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-inner bg-indigo-50 dark:bg-indigo-900/20`}>
-                📄
+            <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-indigo-50 shadow-inner dark:bg-indigo-900/20">
+              {billImage && (
+                <img
+                  src={billImage}
+                  alt={bill.name}
+                  className="absolute inset-0 z-10 h-full w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    event.currentTarget.parentElement
+                      ?.querySelector('[data-bill-fallback]')
+                      ?.classList.remove('hidden');
+                  }}
+                />
+              )}
+              <div data-bill-fallback className={`${billImage ? 'hidden ' : ''}absolute inset-0`}>
+                <Image src={billsAsset} alt="" fill sizes="64px" className="object-contain p-2" />
               </div>
-            )}
+            </div>
           </div>
           <div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">{bill.name}</h3>
@@ -226,7 +267,7 @@ const applyFilters = (bill) => {
               autoPaid: bill.autoPaid,
               autoPayAccountId: bill.autoPayAccountId || '',
               notes: bill.notes || '',
-              image: bill.image || ''
+              image: bill.image || bill.imageUrl || bill.photo || bill.receiptImage || bill.receipt || bill.logo || ''
             });
             setIsEditing(bill._id);
             setShowBillForm(true);
@@ -276,7 +317,8 @@ const applyFilters = (bill) => {
         </button>
       </div>
     </div>
-  );
+    );
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-900 flex items-center justify-center">
@@ -294,11 +336,13 @@ const applyFilters = (bill) => {
             <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight">🏛️ Bills & Subscriptions</h1>
             <p className="mt-2 text-gray-500 dark:text-neutral-400 font-medium">Manage your recurring payments and dues.</p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => setShowBillForm(true)} className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.02] active:scale-95 rounded-2xl shadow-xl shadow-indigo-500/25 transition-all">
-              + Add Bill
-            </button>
-          </div>
+        </div>
+
+        <div className="walletly-fab-group">
+          <button onClick={() => { setIsEditing(null); setShowBillForm(true); }} className="walletly-fab walletly-fab-primary">
+            <span className="walletly-fab-icon">+</span>
+            <span>Add Bill</span>
+          </button>
         </div>
 
         {/* Summary Cards */}
@@ -423,8 +467,8 @@ const applyFilters = (bill) => {
                   <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-neutral-300 mb-1.5">Bill Photo / Receipt</label>
                   <div className="flex items-center gap-3">
                     <label className="flex-1 flex flex-col items-center justify-center h-24 sm:h-32 px-3 py-4 bg-gray-50 dark:bg-neutral-900 border-2 border-dashed border-gray-200 dark:border-neutral-700 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all overflow-hidden">
-                      {billForm.image ? (
-                        <img src={billForm.image} alt="Preview" className="h-full w-full object-cover rounded-xl" />
+                      {resolveBackendImage(billForm.image) ? (
+                        <img src={resolveBackendImage(billForm.image)} alt="Preview" className="h-full w-full object-cover rounded-xl" />
                       ) : (
                         <div className="text-center">
                           <span className="text-xl sm:text-2xl mb-1 block">📸</span>

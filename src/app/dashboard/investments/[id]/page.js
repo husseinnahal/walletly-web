@@ -2,15 +2,121 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  BadgeDollarSign,
+  Calendar,
+  CheckCircle2,
+  Eye,
+  FileText,
+  Mail,
+  Phone,
+  PieChart,
+  Rocket,
+  StickyNote,
+  Tag,
+  TrendingUp,
+  WalletCards,
+  XCircle,
+  Pencil,
+  Trash2
+} from 'lucide-react';
 import { apiFetch } from '../../../../lib/api';
+import { useAuth } from '../../../../context/AuthContext';
+
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim();
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
+const money = (value) =>
+  `$${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+const percent = (value) => {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? `${number}%` : `${number.toFixed(1)}%`;
+};
+
+const resolveAvatarUrl = (value) => {
+  const clean = String(value || '').trim();
+  if (!clean) return null;
+  if (/^https?:\/\//i.test(clean) || clean.startsWith('data:')) return clean;
+  return `${API_ORIGIN}/${clean.replace(/^\/+/, '')}`;
+};
+
+const typeBadgeClasses = (type) => {
+  switch (String(type || '').trim().toLowerCase()) {
+    case 'equity':
+      return 'bg-blue-500/20 text-blue-200 border-blue-300/15';
+    case 'loan':
+      return 'bg-amber-500/20 text-amber-200 border-amber-300/15';
+    case 'partnership':
+      return 'bg-purple-500/20 text-purple-200 border-purple-300/15';
+    default:
+      return 'bg-white/12 text-white border-white/15';
+  }
+};
+
+const ownerName = (investment) =>
+  investment?.postedBy || investment?.userId?.username || investment?.owner?.username || 'Anonymous';
+
+const ownerAvatar = (investment) =>
+  investment?.avatar || investment?.userId?.avatar || investment?.owner?.avatar;
+
+const contactEmail = (investment) =>
+  investment?.email || investment?.userId?.email || investment?.owner?.email || '';
+
+const contactPhone = (investment) =>
+  investment?.phoneNumber || investment?.phone || investment?.userId?.phone || investment?.owner?.phone || '';
+
+const unwrapInvestment = (response) => {
+  const data = response?.data ?? response;
+  return data?.investment || data?.opportunity || data?.item || data?.data || data;
+};
+
+function GlassPanel({ children, className = '' }) {
+  return (
+    <div className={`rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.10] to-white/[0.04] p-4 shadow-[0_18px_46px_rgba(0,0,0,0.26)] backdrop-blur-xl ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function DetailItem({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-4">
+      <Icon className="mb-3 h-4 w-4 text-[#EA7108]/80" />
+      <p className="text-[10px] font-black uppercase tracking-wider text-white/45">{label}</p>
+      <p className="mt-1 break-words text-sm font-black text-white">{value || '-'}</p>
+    </div>
+  );
+}
+
+function TextPanel({ icon: Icon, title, text }) {
+  return (
+    <GlassPanel>
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-[#EA7108]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-black text-white">{title}</h3>
+          <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-relaxed text-white/72">{text}</p>
+        </div>
+      </div>
+    </GlassPanel>
+  );
+}
 
 export default function InvestmentDetailPage({ params }) {
   const router = useRouter();
   const { id } = use(params);
-  
+  const { user } = useAuth();
+
   const [investment, setInvestment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  const [showModal, setShowModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     fetchInvestment();
@@ -19,11 +125,57 @@ export default function InvestmentDetailPage({ params }) {
   const fetchInvestment = async () => {
     try {
       const response = await apiFetch(`/investments/${id}`);
-      setInvestment(response.data);
+      setInvestment(unwrapInvestment(response));
     } catch (err) {
       setError(err.message || 'Failed to load investment details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this posting?')) return;
+    try {
+      await apiFetch(`/investments/${id}`, { method: 'DELETE' });
+      router.push('/dashboard/investments');
+    } catch (err) {
+      alert('Failed to delete investment');
+    }
+  };
+
+  const handleOpenEditModal = () => {
+    setFormData({
+      title: investment.title,
+      description: investment.description,
+      category: investment.category,
+      requiredAmount: investment.requiredAmount,
+      investmentType: investment.investmentType,
+      equityOffered: investment.equityOffered || 0,
+      expectedReturn: investment.expectedReturn || 0,
+      durationMonths: investment.durationMonths || 0,
+      stage: investment.stage,
+      minInvestment: investment.minInvestment || 0,
+      isAvailable: investment.isAvailable
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await apiFetch(`/investments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(formData)
+      });
+      setShowModal(false);
+      fetchInvestment();
+    } catch (err) {
+      setError(err.message || 'Failed to save investment');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -41,185 +193,300 @@ export default function InvestmentDetailPage({ params }) {
   if (error || !investment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white p-8 rounded-3xl shadow-xl text-center max-w-md w-full">
-          <div className="text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Error</h2>
-          <p className="text-slate-500 mb-6">{error || 'Investment not found'}</p>
-          <button 
+        <GlassPanel className="max-w-md text-center">
+          <h2 className="text-xl font-black text-white mb-2">Investment not found</h2>
+          <p className="text-white/65 mb-6">{error || 'This opportunity is unavailable.'}</p>
+          <button
             onClick={() => router.push('/dashboard/investments')}
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-all"
+            className="w-full rounded-2xl bg-[#6be6b0] py-3 font-black text-[#063015]"
           >
             Back to Marketplace
           </button>
-        </div>
+        </GlassPanel>
       </div>
     );
   }
 
-  const getStageColor = (stage) => {
-    switch (stage) {
-      case 'idea': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'mvp': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'launched': return 'bg-green-100 text-green-700 border-green-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
+  const type = String(investment.investmentType || '').trim().toLowerCase();
+  const avatar = resolveAvatarUrl(ownerAvatar(investment));
+  const name = ownerName(investment);
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  const email = contactEmail(investment);
+  const phone = contactPhone(investment);
+  const mailSubject = `Investment inquiry: ${investment.title}`;
+  const mailBody = `Hello, I am interested in the investment: ${investment.title}`;
+
+  const isOwner = user && investment && (
+    investment?.userId?._id === user._id || 
+    investment?.userId === user._id || 
+    investment?.owner?._id === user._id || 
+    investment?.owner === user._id
+  );
+
+  const detailItems = [
+    { icon: Tag, label: 'Category', value: investment.category },
+    { icon: WalletCards, label: 'Investment Required', value: money(investment.requiredAmount) },
+    { icon: BadgeDollarSign, label: 'Min Investment', value: money(investment.minInvestment) },
+    { icon: Rocket, label: 'Stage', value: String(investment.stage || '').toUpperCase() },
+    { icon: investment.isAvailable ? CheckCircle2 : XCircle, label: 'Status', value: investment.isAvailable ? 'Available' : 'Closed' }
+  ];
+
+  if (type === 'equity') {
+    detailItems.push({ icon: PieChart, label: 'Equity Offered', value: percent(investment.equityOffered) });
+  }
+
+  if (type === 'loan') {
+    detailItems.push({ icon: TrendingUp, label: 'Expected Return', value: percent(investment.expectedReturn) });
+    detailItems.push({ icon: Calendar, label: 'Duration', value: `${investment.durationMonths || 0} months` });
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Navigation Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <button 
+    <div className="min-h-screen bg-slate-50 pb-20 px-4 py-6">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex items-center justify-between mb-5">
+          <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium transition-colors"
+            className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-black text-white/75 transition hover:text-white"
           >
-            <span>⬅️</span>
             Back
           </button>
-          <div className="flex items-center gap-3">
-             <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md border ${getStageColor(investment.stage)}`}>
-               {investment.stage}
-             </span>
-             <div className="flex items-center gap-1.5 text-slate-400 text-sm">
-                <span>👁️</span>
-                <span>{investment.views} views</span>
-             </div>
-          </div>
+          
+          {isOwner && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleOpenEditModal}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-black text-white/75 transition hover:text-white hover:bg-white/10"
+              >
+                <Pencil className="h-4 w-4" />
+                Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="inline-flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-black text-red-400 transition hover:bg-red-500/20 hover:text-red-300"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <GlassPanel className="relative overflow-hidden p-0">
+            <div className="p-5 sm:p-6">
+              <div className={`absolute right-0 top-0 rounded-bl-2xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider ${typeBadgeClasses(type)}`}>
+                {investment.investmentType || 'Investment'}
+              </div>
+
+              <div className="pr-24">
+                <h1 className="text-2xl sm:text-3xl font-black leading-tight text-white">{investment.title}</h1>
+                <div className="mt-4 flex items-center gap-2 text-white/70">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/10 text-[11px] font-black text-[#EA7108]">
+                    {avatar ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : initial}
+                  </div>
+                  <span className="truncate text-sm font-bold">{name}</span>
+                  <span className="text-white/30">•</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-white/50">
+                    <Eye className="h-3.5 w-3.5" />
+                    {investment.viewedByCount ?? investment.views ?? 0} views
+                  </span>
+                </div>
+              </div>
+            </div>
+          </GlassPanel>
+
+          <GlassPanel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {detailItems.map((item) => (
+                <DetailItem key={item.label} {...item} />
+              ))}
+            </div>
+          </GlassPanel>
+
+          <TextPanel icon={FileText} title="Description" text={investment.description || '-'} />
+
+          {phone && <TextPanel icon={Phone} title="Phone Number" text={phone} />}
+          {email && <TextPanel icon={Mail} title="Email Address" text={email} />}
+          {investment.note && <TextPanel icon={StickyNote} title="Note" text={investment.note} />}
+
+          {(phone || email) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {phone && (
+                <a
+                  href={`tel:${phone}`}
+                  className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-4 text-sm font-black text-white transition hover:bg-emerald-400"
+                >
+                  <Phone className="h-4 w-4" />
+                  Call
+                </a>
+              )}
+              {email && (
+                <a
+                  href={`mailto:${email}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`}
+                  className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-[#EA7108] px-4 py-4 text-sm font-black text-white transition hover:brightness-110"
+                >
+                  <Mail className="h-4 w-4" />
+                  Send Message
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Title & Badge */}
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-4xl p-3 bg-white rounded-2xl shadow-sm border border-slate-100">
-                  {investment.category === 'tech' ? '💻' : 
-                   investment.category === 'food' ? '🍔' : 
-                   investment.category === 'ecommerce' ? '🛍️' : 
-                   investment.category === 'service' ? '🛠️' : '💡'}
-                </span>
+      {/* Modal for Post/Edit */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-900 text-white">
+              <h2 className="text-xl font-bold">Edit Posting</h2>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 max-h-[80vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Title</label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="e.g. Smart Irrigation System for Vertical Farming"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</label>
+                  <textarea 
+                    required
+                    rows="3"
+                    placeholder="Describe your idea or the opportunity..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  ></textarea>
+                </div>
+
                 <div>
-                  <p className="text-emerald-600 text-xs font-bold uppercase tracking-widest">{investment.category}</p>
-                  <h1 className="text-3xl font-black text-slate-900">{investment.title}</h1>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Category</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  >
+                    <option value="tech">Technology</option>
+                    <option value="food">Food & Beverage</option>
+                    <option value="ecommerce">E-commerce</option>
+                    <option value="service">Services</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
-              </div>
-              
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Description</h3>
-                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
-                  {investment.description}
-                </p>
-              </div>
-            </div>
 
-            {/* Additional Details Section if any */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Investment Goal</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-black text-slate-900">${investment.requiredAmount.toLocaleString()}</span>
-                  <span className="text-slate-400 text-sm mb-1 font-medium">Total Needed</span>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Business Stage</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    value={formData.stage}
+                    onChange={(e) => setFormData({...formData, stage: e.target.value})}
+                  >
+                    <option value="idea">Idea / Conceptual</option>
+                    <option value="mvp">MVP / Prototype</option>
+                    <option value="launched">Launched / Scaling</option>
+                  </select>
                 </div>
-              </div>
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Minimum Entry</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-black text-slate-900">${investment.minInvestment?.toLocaleString() || '0'}</span>
-                  <span className="text-slate-400 text-sm mb-1 font-medium">Per Investor</span>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Investment Type</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold"
+                    value={formData.investmentType}
+                    onChange={(e) => setFormData({...formData, investmentType: e.target.value})}
+                  >
+                    <option value="equity">Equity (Shares)</option>
+                    <option value="loan">Loan (Repayment)</option>
+                    <option value="partnership">Co-Founder / Partner</option>
+                  </select>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Sidebar / Stats Card */}
-          <div className="space-y-6">
-            {/* Investment Card */}
-            <div className="bg-slate-900 text-white p-8 rounded-[2rem] shadow-2xl shadow-slate-200 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-              
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
-                {investment.investmentType} Structure
-              </h3>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Required Amount ($)</label>
+                  <input 
+                    required
+                    type="number" 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    value={formData.requiredAmount}
+                    onChange={(e) => setFormData({...formData, requiredAmount: Number(e.target.value)})}
+                  />
+                </div>
 
-              <div className="space-y-6">
-                {investment.investmentType === 'equity' && (
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Equity Offered</p>
-                    <p className="text-4xl font-black">{investment.equityOffered}%</p>
-                    <p className="text-xs text-slate-500 mt-2">Ownership share in the company</p>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Minimum Investment ($)</label>
+                  <input 
+                    required
+                    type="number" 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                    value={formData.minInvestment}
+                    onChange={(e) => setFormData({...formData, minInvestment: Number(e.target.value)})}
+                  />
+                </div>
+
+                {formData.investmentType === 'equity' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Equity Offered (%)</label>
+                    <input 
+                      type="number" 
+                      max="100"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      value={formData.equityOffered}
+                      onChange={(e) => setFormData({...formData, equityOffered: Number(e.target.value)})}
+                    />
                   </div>
                 )}
 
-                {investment.investmentType === 'loan' && (
+                {formData.investmentType === 'loan' && (
                   <>
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">Expected Return</p>
-                      <p className="text-4xl font-black">{investment.expectedReturn}$</p>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Expected Return (%)</label>
+                      <input 
+                        type="number" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                        value={formData.expectedReturn}
+                        onChange={(e) => setFormData({...formData, expectedReturn: Number(e.target.value)})}
+                      />
                     </div>
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">Repayment Period</p>
-                      <p className="text-2xl font-bold">{investment.durationMonths} Months</p>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Duration (Months)</label>
+                      <input 
+                        type="number" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                        value={formData.durationMonths}
+                        onChange={(e) => setFormData({...formData, durationMonths: Number(e.target.value)})}
+                      />
                     </div>
                   </>
                 )}
 
-                {investment.investmentType === 'partnership' && (
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Role Offered</p>
-                    <p className="text-2xl font-bold">Strategic Partner</p>
-                    <p className="text-xs text-slate-500 mt-2">Seeking active involvement & expertise</p>
-                  </div>
-                )}
-
-                <div className="pt-6 border-t border-slate-800">
-                   <p className="text-slate-400 text-sm mb-1">Posted On</p>
-                   <p className="font-bold">{new Date(investment.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Owner Contact */}
-            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Owner Information</h3>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl font-black text-emerald-600 border border-emerald-100">
-                  {investment.userId?.avatar ? 
-                    <img src={investment.userId.avatar} alt="" className="w-full h-full object-cover rounded-2xl" /> : 
-                    investment.userId?.username?.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-slate-900">{investment.userId?.username || 'Anonymous'}</p>
-                  <p className="text-sm text-slate-400">Verified Member</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <a 
-                  href={`mailto:${investment.userId?.email}`}
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-900 font-bold rounded-xl transition-all border border-slate-200"
-                >
-                  <span>✉️</span> Send email
-                </a>
-                {investment.userId?.phone && (
-                  <a 
-                    href={`tel:${investment.userId?.phone}`}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-100"
+                <div className="md:col-span-2 pt-4">
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-slate-200"
                   >
-                    <span>📞</span> Contact via Phone
-                  </a>
-                )}
+                    {isSubmitting && (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}
+                    Save Changes
+                  </button>
+                </div>
               </div>
-            </div>
+            </form>
           </div>
-
         </div>
-      </div>
+      )}
     </div>
   );
 }

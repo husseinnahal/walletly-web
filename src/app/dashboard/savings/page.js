@@ -83,6 +83,7 @@ export default function SavingsPage() {
       setGoals(newGoals);
       setTotalTarget(savingsData.totalTarget || 0);
       setTotalSaved(savingsData.totalSaved || 0);
+      window.dispatchEvent(new Event('walletly-feature-progress-refresh'));
 
       // Update activeGoal if it exists
       if (activeGoal) {
@@ -211,9 +212,6 @@ export default function SavingsPage() {
             <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">Track your dreams and build your future.</p>
           </div>
           <div className="mt-4 md:mt-2  flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
-            <button onClick={() => setShowGoalForm(true)} className="px-4 py-2 w-full  sm:w-auto border border-transparent shadow-sm text-xs sm:text-sm font-bold rounded-xl text-black bg-gradient-to-r from-[#6be6b0] to-emerald-600 hover:scale-[1.02] active:scale-95 transition-all">
-              + New Goal
-            </button>
             <div className="relative group w-full  sm:w-auto">
               <input 
                 type="text" 
@@ -232,6 +230,13 @@ export default function SavingsPage() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="walletly-fab-group">
+          <button onClick={() => setShowGoalForm(true)} className="walletly-fab walletly-fab-primary">
+            <span className="walletly-fab-icon">+</span>
+            <span>New Goal</span>
+          </button>
         </div>
 
         {/* Summary Cards */}

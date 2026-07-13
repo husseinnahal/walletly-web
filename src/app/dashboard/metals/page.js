@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { apiFetch } from '../../../lib/api';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { CalendarDays, Calculator, Gem, Hexagon, Pencil, Trash2 } from 'lucide-react';
 
 export default function MetalsPage() {
   const { user } = useAuth();
@@ -30,6 +31,15 @@ export default function MetalsPage() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [editingMetalId, setEditingMetalId] = useState(null);
+  const [expandedMetalId, setExpandedMetalId] = useState(null);
+  const [calculator, setCalculator] = useState({
+    type: 'gold',
+    mode: 'g',
+    option: '21K',
+    grams: 31.1,
+    quantity: 1
+  });
 
   // Filter State
   const [filters, setFilters] = useState({
@@ -172,10 +182,11 @@ export default function MetalsPage() {
     if (payload.form === 'lira') delete payload.weight;
 
     try {
-      await apiFetch('/metals', {
-        method: 'POST',
+      await apiFetch(editingMetalId ? `/metals/${editingMetalId}` : '/metals', {
+        method: editingMetalId ? 'PATCH' : 'POST',
         body: JSON.stringify(payload)
       });
+      setEditingMetalId(null);
       setShowModal(false);
       fetchData();
     } catch (err) {
@@ -185,14 +196,350 @@ export default function MetalsPage() {
     }
   };
 
+  const openEditMetal = (metal) => {
+    setEditingMetalId(metal._id);
+    setFormData({
+      type: metal.type || 'gold',
+      form: metal.form || 'gram',
+      purity: metal.purity || '24k',
+      liraType: metal.liraType || 'full',
+      quantity: metal.quantity || 1,
+      weight: metal.weight || 0,
+      price: metal.price || 0,
+      date: metal.date ? new Date(metal.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      note: metal.note || '',
+      accountId: metal.accountId?._id || metal.accountId || ''
+    });
+    setShowModal(true);
+  };
+
+  const openCreateMetal = () => {
+    setEditingMetalId(null);
+    setFormData({
+      type: filters.type,
+      form: 'gram',
+      purity: '24k',
+      liraType: 'full',
+      quantity: 1,
+      weight: 0,
+      price: 0,
+      date: new Date().toISOString().split('T')[0],
+      note: '',
+      accountId: accounts[0]?._id || ''
+    });
+    setShowModal(true);
+  };
+
+  const switchMetalType = (type) => {
+    setFilters({ type, form: '' });
+    setCalculator((prev) => ({
+      ...prev,
+      type,
+      mode: 'g',
+      option: type === 'gold' ? '21K' : '1g',
+      grams: type === 'gold' ? 31.1 : 31.3
+    }));
+    setFormData((prev) => ({ ...prev, type }));
+    setExpandedMetalId(null);
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this asset?')) return;
     try {
       await apiFetch(`/metals/${id}`, { method: 'DELETE' });
+      setExpandedMetalId(null);
       fetchData();
     } catch (err) {
       alert('Failed to delete asset');
     }
+  };
+
+  const calculatorQuantity = Number(calculator.quantity) || 0;
+
+  const formatMoney = (value, decimals = 0, sign = '') =>
+    `${sign}$${Number(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    })}`;
+
+  const formatQuantity = (value) => {
+    const number = Number(value || 0);
+    return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '');
+  };
+
+  const purityNumber = (value, fallback = 24) => {
+    const parsed = Number(String(value || '').replace(/k$/i, ''));
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  };
+
+  const weightOptionToGrams = (option) => {
+    const value = String(option || '').trim().toLowerCase();
+    if (value === '1g') return 1;
+    if (value === '10g') return 10;
+    if (value === '31.1g') return 31.1;
+    if (value === '31.3g') return 31.3;
+    if (value === '100g') return 100;
+    if (value === '1kg' || value === '1 kg') return 1000;
+    if (value === '1 oz') return 31.1035;
+    if (value === '10 oz') return 311.035;
+
+    const numeric = Number(value.replace(/kg|g|oz/g, ''));
+    if (!Number.isFinite(numeric) || numeric <= 0) return 1;
+    return value.includes('kg') ? numeric * 1000 : numeric;
+  };
+
+  const fractionMultiplier = (option) => {
+    const value = String(option || '').trim().toLowerCase();
+    if (value === 'quarter' || value === '1/4' || value === '0.25') return 0.25;
+    if (value === 'half' || value === '1/2' || value === '0.5') return 0.5;
+    return 1;
+  };
+
+  const calculatorTabs = filters.type === 'gold' ? ['g', 'Lira', 'Ounce'] : ['g', 'Ounce'];
+
+  const calculatorOptionsFor = (mode = calculator.mode, type = filters.type) => {
+    if (type === 'gold' && mode === 'g') return ['18K', '21K', '24K'];
+    if (type === 'gold' && mode === 'Lira') return ['1/4', '1/2', '1'];
+    if (type === 'gold' && mode === 'Ounce') return ['31.1g', '100g', '1kg'];
+    if (type === 'silver' && mode === 'g') return ['1g', '10g', '100g'];
+    if (type === 'silver' && mode === 'Ounce') return ['31.3g', '100g', '1kg'];
+    return [];
+  };
+
+  const marketplaceFor = (type = filters.type) => stats?.[type]?.marketplace;
+
+  const fallbackGramPrice = (type = filters.type, purity = 24) => {
+    const spot = Number(marketPrices[type]) || 0;
+    if (!spot) return 0;
+    const pureGramPrice = spot / 31.1035;
+    if (type === 'silver') return pureGramPrice;
+    return pureGramPrice * (purity / 24);
+  };
+
+  const goldGramPrice = (market, purity = 24) => {
+    const key = purityNumber(purity);
+    return Number(market?.[key] ?? market?.[`k${key}`] ?? 0);
+  };
+
+  const calculatorUnitPrice = (option = calculator.option) => {
+    const market = marketplaceFor(filters.type);
+
+    if (filters.type === 'gold') {
+      const k24 = goldGramPrice(market, 24) || fallbackGramPrice('gold', 24);
+      const k21 = goldGramPrice(market, 21) || fallbackGramPrice('gold', 21);
+      const k18 = goldGramPrice(market, 18) || fallbackGramPrice('gold', 18);
+
+      if (calculator.mode === 'g') {
+        if (option === '18K') return k18;
+        if (option === '21K') return k21;
+        return k24;
+      }
+
+      if (calculator.mode === 'Lira') {
+        return fractionMultiplier(option) * 7.2 * k21;
+      }
+
+      if (calculator.mode === 'Ounce') {
+        const grams = option ? weightOptionToGrams(option) : Number(calculator.grams) || 31.1;
+        return k24 * grams;
+      }
+    }
+
+    const silverGram = Number(market) || fallbackGramPrice('silver');
+    if (calculator.mode === 'g') return silverGram * weightOptionToGrams(option);
+    if (calculator.mode === 'Ounce') {
+      const grams = option ? weightOptionToGrams(option) : Number(calculator.grams) || 31.3;
+      return silverGram * grams;
+    }
+
+    return 0;
+  };
+
+  const calculatorValue = calculatorQuantity * calculatorUnitPrice();
+
+  const normalizeUnit = (metal) => {
+    const unit = String(metal.unit || metal.form || '').toLowerCase();
+    if (unit === 'gram') return 'grams';
+    if (unit === 'lira') return 'liras';
+    if (unit === 'ounce') return 'ounces';
+    return unit || 'grams';
+  };
+
+  const formatOunceGram = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const lower = raw.toLowerCase();
+    return lower.endsWith('g') || lower.endsWith('kg') ? raw : `${raw}g`;
+  };
+
+  const metalTitle = (metal) => {
+    const unit = normalizeUnit(metal);
+    const isGold = metal.type === 'gold';
+    const quantity = formatQuantity(
+      unit === 'grams' && Number(metal.weight) > 0 ? metal.weight : metal.quantity || 1
+    );
+
+    if (unit === 'grams') {
+      return `${quantity}g${isGold && metal.purity ? ` x ${String(metal.purity).replace(/k$/i, '')}k` : ''}`;
+    }
+
+    if (unit === 'ounces') {
+      const ounceGram =
+        formatOunceGram(metal.ounceType) ||
+        formatOunceGram(metal.liraType) ||
+        (Number(metal.weight) > 0 && Number(metal.quantity) > 0
+          ? `${formatQuantity(Number(metal.weight) / Number(metal.quantity))}g`
+          : '');
+      const ounceLabel = Number(metal.quantity) === 1 ? 'ounce' : 'ounces';
+      return ounceGram ? `${ounceGram} x ${quantity} ${ounceLabel}` : `${quantity} ${ounceLabel}`;
+    }
+
+    if (unit === 'liras') {
+      const rawType = String(metal.liraType || 'full').toLowerCase();
+      const liraType = rawType === 'quarter' || rawType === '1/4' || rawType === '0.25'
+        ? '1/4'
+        : rawType === 'half' || rawType === '1/2' || rawType === '0.5'
+          ? '1/2'
+          : '1';
+      return `${liraType} x ${quantity} lira`;
+    }
+
+    return `${quantity} ${unit}`;
+  };
+
+  const metalPurchasedValue = (metal) => {
+    const spent = Number(metal.totalSpent);
+    if (spent > 0) return spent;
+    const paid = Number(metal.price);
+    if (paid > 0) return paid;
+    return (Number(metal.quantity) || 0) * (Number(metal.purchasePrice) || 0);
+  };
+
+  const ounceGramsPerUnit = (metal) => {
+    const multiplier = Number(metal.weightMultiplier);
+    if (multiplier > 0) return multiplier * 31.1035;
+
+    const fromOunceType = weightOptionToGrams(metal.ounceType);
+    if (metal.ounceType && fromOunceType > 0) return fromOunceType;
+
+    const fromLiraType = weightOptionToGrams(metal.liraType);
+    if (metal.liraType && fromLiraType > 0) return fromLiraType;
+
+    const weight = Number(metal.weight);
+    const quantity = Number(metal.quantity);
+    if (weight > 0 && quantity > 0) return weight / quantity;
+
+    return 31.1035;
+  };
+
+  const metalCurrentValue = (metal) => {
+    const unit = normalizeUnit(metal);
+    const quantity = Number(metal.quantity) || 0;
+    const type = metal.type || filters.type;
+    const metalStats = stats?.[type];
+    if (!metalStats) return metalPurchasedValue(metal);
+
+    if (type === 'gold') {
+      if (unit === 'grams') {
+        const purity = purityNumber(metal.purity, 24);
+        const grams = Number(metal.weight) > 0 ? Number(metal.weight) : quantity;
+        const gramPrice = goldGramPrice(metalStats.marketplace, purity) || goldGramPrice(metalStats.marketplace, 24);
+        return grams * gramPrice;
+      }
+      if (unit === 'liras') {
+        const multiplier = Number(metal.weightMultiplier) || fractionMultiplier(metal.liraType);
+        return quantity * multiplier * goldGramPrice(metalStats.marketplace, 21) * 7.2;
+      }
+      if (unit === 'ounces') {
+        const grams = Number(metal.weight) > 0 ? Number(metal.weight) : quantity * ounceGramsPerUnit(metal);
+        return grams * goldGramPrice(metalStats.marketplace, 24);
+      }
+    }
+
+    if (type === 'silver') {
+      if (unit === 'grams') {
+        const purity = Number(String(metal.purity || '999').replace(/k$/i, '')) || 999;
+        const grams = Number(metal.weight) > 0 ? Number(metal.weight) : quantity;
+        return grams * (metalStats.marketplace || 0) * (purity / 999);
+      }
+      if (unit === 'ounces') {
+        const grams = Number(metal.weight) > 0 ? Number(metal.weight) : quantity * ounceGramsPerUnit(metal);
+        return grams * (metalStats.marketplace || 0);
+      }
+    }
+
+    return metalPurchasedValue(metal);
+  };
+
+  const renderMetalAssetCard = (metal) => {
+    const isGold = metal.type === 'gold';
+    const purchased = metalPurchasedValue(metal);
+    const current = metalCurrentValue(metal);
+    const diff = current - purchased;
+    const Icon = isGold ? Gem : Hexagon;
+    const isExpanded = expandedMetalId === metal._id;
+
+    return (
+      <div
+        key={metal._id}
+        onClick={() => setExpandedMetalId((currentId) => currentId === metal._id ? null : metal._id)}
+        className="cursor-pointer rounded-[18px] border border-white/15 bg-gradient-to-br from-white/[0.11] to-white/[0.04] px-3.5 py-3 shadow-[0_18px_42px_rgba(0,0,0,0.22)] backdrop-blur-xl transition hover:border-white/20"
+      >
+        <div className="flex items-start gap-3">
+          <div className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[14px] border ${
+            isGold
+              ? 'border-yellow-300/25 bg-yellow-400/20 text-yellow-300'
+              : 'border-slate-200/25 bg-slate-200/15 text-slate-100'
+          }`}>
+            <Icon className="h-[22px] w-[22px]" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-extrabold text-white">{metalTitle(metal)}</p>
+            <div className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-white/70">
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span>{metal.createdAt ? new Date(metal.createdAt).toLocaleDateString() : new Date(metal.date).toLocaleDateString()}</span>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-end">
+            <span className="rounded-full bg-white/12 px-3 py-1.5 text-[13px] font-black text-white">
+              {formatMoney(purchased)}
+            </span>
+            <span className={`mt-1 text-xs font-bold ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {formatMoney(Math.abs(diff), 2, diff >= 0 ? '+' : '-')}
+            </span>
+          </div>
+        </div>
+
+        {isExpanded && (
+        <div className="mt-3 border-t border-white/10 pt-3">
+          <div className="flex gap-2">
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                openEditMetal(metal);
+              }}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/15"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </button>
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                handleDelete(metal._id);
+              }}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-red-500 px-3 py-2 text-xs font-bold text-white transition hover:bg-red-600"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+        </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) return (
@@ -212,19 +559,36 @@ export default function MetalsPage() {
             </h1>
             <p className="text-gray-500 dark:text-neutral-400 font-medium mt-1">Track your physical gold and silver assets.</p>
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <button onClick={() => {
-              setFormData({ ...formData, date: new Date().toISOString().split('T')[0] });
-              setShowModal(true);
-            }} className="px-5 py-2.5 text-sm font-bold text-white bg-yellow-500 hover:bg-yellow-600 rounded-2xl transition shadow-md shadow-yellow-500/20 flex-1 md:flex-none">
-              + Add Asset
-            </button>
-          </div>
         </div>
       </div>
 
+      <div className="walletly-fab-group">
+        <button onClick={openCreateMetal} className="walletly-fab walletly-fab-primary">
+          <span className="walletly-fab-icon">+</span>
+          <span>Add Asset</span>
+        </button>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
+        <div className="rounded-[18px] border border-white/10 bg-white/[0.06] p-1.5 shadow-sm backdrop-blur-xl">
+          <div className="grid grid-cols-2 gap-2">
+            {['gold', 'silver'].map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => switchMetalType(type)}
+                className={`h-11 rounded-[14px] text-sm font-extrabold capitalize transition ${
+                  filters.type === type
+                    ? 'bg-yellow-500 text-[#2f1d08] shadow-lg shadow-yellow-500/15'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Statistics Section */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -299,6 +663,125 @@ export default function MetalsPage() {
           </div>
         )}
 
+        {/* Calculator Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6">
+          <div className="bg-white dark:bg-neutral-800 rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-neutral-700 overflow-hidden relative">
+            <div className="relative z-10">
+              <p className="text-xs font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-400 mb-2">
+                {filters.type === 'gold' ? 'Gold' : 'Silver'} Calculator
+              </p>
+              <h2 className="flex items-center gap-2 text-2xl font-black text-gray-900 dark:text-white">
+                <Calculator className="h-6 w-6 text-yellow-500" />
+                Estimate current value
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-neutral-400 mt-2 max-w-xl">Choose grams, ounces, or gold liras using the same options as the Walletly app.</p>
+            </div>
+
+            <div className="relative z-10 mt-6 rounded-[18px] bg-gray-100 p-1.5 dark:bg-neutral-900">
+              <div className={`grid gap-1.5 ${calculatorTabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {calculatorTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => {
+                      const nextOptions = calculatorOptionsFor(tab);
+                      const nextOption = nextOptions[0] || '';
+                      setCalculator((prev) => ({
+                        ...prev,
+                        mode: tab,
+                        option: nextOption,
+                        grams: tab === 'Ounce' ? weightOptionToGrams(nextOption) : prev.grams
+                      }));
+                    }}
+                    className={`h-10 rounded-[13px] text-sm font-black transition ${
+                      calculator.mode === tab
+                        ? 'bg-yellow-500 text-gray-950 shadow-sm'
+                        : 'text-gray-600 hover:bg-white dark:text-neutral-300 dark:hover:bg-white/10'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {calculatorOptionsFor().map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setCalculator((prev) => ({
+                    ...prev,
+                    option,
+                    grams: calculator.mode === 'Ounce' ? weightOptionToGrams(option) : prev.grams
+                  }))}
+                  className={`rounded-2xl border px-4 py-3 text-left transition ${
+                    calculator.option === option
+                      ? 'border-yellow-400 bg-yellow-50 text-gray-950 shadow-lg shadow-yellow-500/10 dark:bg-yellow-500'
+                      : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-yellow-300 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200'
+                  }`}
+                >
+                  <span className="block text-sm font-black">{option}</span>
+                  <span className="mt-1 block text-xs font-bold opacity-70">
+                    {formatMoney(calculatorUnitPrice(option), 2)}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="relative z-10 mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {calculator.mode === 'Ounce' && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider mb-2">Grams per unit</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={calculator.grams}
+                    onChange={(event) => setCalculator((prev) => ({ ...prev, grams: event.target.value, option: '' }))}
+                    className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                  />
+                </div>
+              )}
+
+              <div className={calculator.mode === 'Ounce' ? '' : 'sm:col-span-2'}>
+                <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider mb-2">Amount</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={calculator.quantity}
+                  onChange={(event) => setCalculator((prev) => ({ ...prev, quantity: event.target.value }))}
+                  className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-3 text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 dark:from-neutral-800 dark:to-neutral-900 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl border border-white/10">
+            <p className="text-xs font-black uppercase tracking-widest text-gray-400">Estimated Value</p>
+            <p className="mt-3 text-4xl font-black">
+              ${calculatorValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+            <div className="mt-6 space-y-3 text-sm">
+              <div className="flex justify-between border-b border-white/10 pb-3">
+                <span className="text-gray-400">Unit price</span>
+                <span className="font-bold">{formatMoney(calculatorUnitPrice(), 2)}</span>
+              </div>
+              <div className="flex justify-between border-b border-white/10 pb-3">
+                <span className="text-gray-400">Amount</span>
+                <span className="font-bold">
+                  {formatQuantity(calculatorQuantity)} {calculator.mode === 'g' ? calculator.option : calculator.mode}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Metal</span>
+                <span className="font-bold capitalize">{filters.type}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Chart Section */}
         {chartData.length > 0 && (
           <div className="bg-white dark:bg-neutral-800 rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-neutral-700 mt-6 mb-8">
@@ -365,19 +848,15 @@ export default function MetalsPage() {
         {/* Assets List */}
         <div className="bg-white dark:bg-neutral-800 rounded-[2rem] p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-neutral-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Asset Inventory</h2>
-                
-                {/* Filters UI */}
+                <div>
+                  <h2 className="text-xl font-black text-gray-900 dark:text-white">
+                    Added {filters.type === 'gold' ? 'Gold' : 'Silver'}
+                  </h2>
+                  <p className="mt-1 text-sm font-medium text-gray-500 dark:text-neutral-400">
+                    {filters.type === 'gold' ? 'Gold assets' : 'Silver assets'} are shown separately like the Walletly app.
+                  </p>
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
-                    <select 
-                        value={filters.type} 
-                        onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                        className="bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 dark:text-neutral-300 outline-none focus:ring-2 focus:ring-yellow-500"
-                    >
-                        <option value="gold">Gold</option>
-                        <option value="silver">Silver</option>
-                    </select>
-
                     <select 
                         value={filters.form} 
                         onChange={(e) => setFilters(prev => ({ ...prev, form: e.target.value }))}
@@ -386,7 +865,7 @@ export default function MetalsPage() {
                         <option value="">All Forms</option>
                         <option value="gram">Grams</option>
                         <option value="ounce">Ounces</option>
-                        <option value="lira">Liras</option>
+                        {filters.type === 'gold' && <option value="lira">Liras</option>}
                     </select>
 
                     {filters.form && (
@@ -402,64 +881,26 @@ export default function MetalsPage() {
             
             {metals.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 dark:bg-neutral-900/50 rounded-3xl border border-dashed border-gray-200 dark:border-neutral-700">
-                    <span className="text-4xl block mb-3">⚖️</span>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">No assets found</h3>
-                    <p className="text-gray-500 dark:text-neutral-400 mt-1">Add your first gold or silver holding.</p>
+                    <div className={`mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-[18px] border ${filters.type === 'gold' ? 'border-yellow-300/25 bg-yellow-400/20 text-yellow-300' : 'border-slate-200/25 bg-slate-200/15 text-slate-100'}`}>
+                      {filters.type === 'gold' ? <Gem className="h-7 w-7" /> : <Hexagon className="h-7 w-7" />}
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">No {filters.type} added yet</h3>
+                    <p className="text-gray-500 dark:text-neutral-400 mt-1">Add your first {filters.type} holding.</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-gray-100 dark:border-neutral-700 text-sm font-semibold text-gray-500 dark:text-neutral-400">
-                                <th className="pb-4 pr-4">Type</th>
-                                <th className="pb-4 px-4">Form</th>
-                                <th className="pb-4 px-4">Details</th>
-                                <th className="pb-4 px-4">Weight</th>
-                                <th className="pb-4 px-4">Spent</th>
-                                <th className="pb-4 px-4">Date</th>
-                                <th className="pb-4 pl-4 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm">
-                            {metals.map(metal => (
-                                <tr key={metal._id} className="border-b border-gray-50 dark:border-neutral-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-neutral-800/50 transition">
-                                    <td className="py-4 pr-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${metal.type === 'gold' ? 'bg-yellow-100 text-yellow-600' : 'bg-slate-100 text-slate-600'}`}>
-                                                {metal.type === 'gold' ? 'Au' : 'Ag'}
-                                            </div>
-                                            <span className="font-bold capitalize text-gray-900 dark:text-white">{metal.type}</span>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-4 capitalize font-medium text-gray-700 dark:text-neutral-300">{metal.form}</td>
-                                    <td className="py-4 px-4 text-gray-500 dark:text-neutral-400">
-                                        {metal.form === 'gram' && metal.purity && <span className="bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded text-xs">{metal.purity}</span>}
-                                        {metal.form === 'lira' && metal.liraType && <span className="bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded text-xs capitalize">{metal.liraType}</span>}
-                                        {metal.quantity > 1 && <span className="ml-2 text-xs">x{metal.quantity}</span>}
-                                    </td>
-                                    <td className="py-4 px-4 font-bold text-gray-900 dark:text-white">{metal.weight}g</td>
-                                    <td className="py-4 px-4 font-bold text-gray-900 dark:text-white">${metal.price.toLocaleString()}</td>
-                                    <td className="py-4 px-4 text-gray-500 dark:text-neutral-400">{new Date(metal.date).toLocaleDateString()}</td>
-                                    <td className="py-4 pl-4 text-right">
-                                        <button onClick={() => handleDelete(metal._id)} className="text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg transition font-medium">Delete</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {metals.map((metal) => renderMetalAssetCard(metal))}
                 </div>
             )}
         </div>
-
       </div>
-
       {/* Add Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
             <div className="px-6 py-6 border-b border-gray-100 dark:border-neutral-800 flex justify-between items-center">
-              <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2"><span>➕</span> Record Asset</h2>
-              <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-500 hover:bg-gray-200 transition">✕</button>
+              <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">{editingMetalId ? 'Edit Asset' : 'Record Asset'}</h2>
+              <button onClick={() => { setShowModal(false); setEditingMetalId(null); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-neutral-800 text-gray-500 hover:bg-gray-200 transition">×</button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -468,16 +909,15 @@ export default function MetalsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider mb-2">Metal</label>
-                  <select name="type" value={formData.type} onChange={handleInputChange} className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none">
-                    <option value="gold">Gold</option>
-                    <option value="silver">Silver</option>
-                  </select>
+                  <div className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white capitalize">
+                    {formData.type}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider mb-2">Form</label>
                   <select name="form" value={formData.form} onChange={handleInputChange} className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-3 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none">
                     <option value="gram">Gram</option>
-                    <option value="lira">Lira</option>
+                    {formData.type === 'gold' && <option value="lira">Lira</option>}
                     <option value="ounce">Ounce</option>
                   </select>
                 </div>
@@ -550,7 +990,7 @@ export default function MetalsPage() {
 
               <div className="pt-2">
                 <button type="submit" disabled={isSubmitting} className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm py-3.5 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition shadow-md disabled:opacity-70">
-                  {isSubmitting ? 'Saving...' : 'Save Asset'}
+                  {isSubmitting ? 'Saving...' : editingMetalId ? 'Save Changes' : 'Save Asset'}
                 </button>
               </div>
             </form>

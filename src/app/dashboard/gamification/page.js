@@ -1,8 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
 import { apiFetch } from '@/lib/api';
+import challengeAsset from '../../../../assets/images/challenges/coiny_challenge.png';
 
 export default function GamificationPage() {
   const [profile, setProfile] = useState(null);
@@ -18,7 +20,6 @@ export default function GamificationPage() {
           apiFetch('/gamification/challenges'),
           apiFetch('/gamification/leaderboard'),
         ]);
-console.log(profileRes.data);
 
         setProfile(profileRes.data);
         setChallenges(challengesRes.data.challenges || []);
@@ -45,8 +46,13 @@ console.log(profileRes.data);
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Your Gamification Profile</h1>
-        <p className={styles.subtitle}>Complete challenges, maintain streaks, and climb the league!</p>
+        <div className={styles.heroImageWrap}>
+          <Image src={challengeAsset} alt="Coiny Challenge" fill priority className={styles.heroImage} />
+        </div>
+        <div>
+          <h1 className={styles.title}>Your Gamification Profile</h1>
+          <p className={styles.subtitle}>Complete challenges, maintain streaks, and climb the league!</p>
+        </div>
       </div>
 
       <div className={styles.profileGrid}>
@@ -89,9 +95,14 @@ console.log(profileRes.data);
               return (
                 <div key={idx} className={`${styles.challengeItem} ${challenge.completed ? styles.completed : ''}`}>
                   <div className={styles.challengeHeader}>
-                    <span className={styles.challengeLabel}>
-                      {challenge.completed ? '✅ ' : ''}{challenge.label}
-                    </span>
+                    <div className={styles.challengeTitleGroup}>
+                      <span className={styles.challengeImageWrap}>
+                        <Image src={challengeAsset} alt="" fill sizes="44px" className={styles.challengeImage} />
+                      </span>
+                      <span className={styles.challengeLabel}>
+                        {challenge.completed ? '✅ ' : ''}{challenge.label}
+                      </span>
+                    </div>
                     <span className={styles.challengeReward}>
                       +{challenge.coins || 25} 🪙
                     </span>

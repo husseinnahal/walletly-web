@@ -19,6 +19,9 @@ export default function TransactionsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [editingTransactionId, setEditingTransactionId] = useState(null);
 
   // AI Voice states
   const [isRecording, setIsRecording] = useState(false);
@@ -121,14 +124,14 @@ export default function TransactionsPage() {
         amount: Number(formData.amount),
       };
       
-      await apiFetch('/transactions', {
-        method: 'POST',
+      await apiFetch(editingTransactionId ? `/transactions/${editingTransactionId}` : '/transactions', {
+        method: editingTransactionId ? 'PATCH' : 'POST',
         body: JSON.stringify(payload),
       });
 
       await fetchTransactions();
 
-      showFeedback('Transaction added successfully! 💸');
+      showFeedback(editingTransactionId ? 'Transaction updated successfully!' : 'Transaction added successfully!');
       setFormData({
         title: '',
         amount: '',
@@ -139,6 +142,8 @@ export default function TransactionsPage() {
         note: '',
         currency: 'USD',
       });
+      setEditingTransactionId(null);
+      setShowTransactionForm(false);
     } catch (err) {
       showFeedback(err.message || 'Failed to add transaction', true);
     } finally {
@@ -155,6 +160,26 @@ export default function TransactionsPage() {
     } catch (err) {
       showFeedback(err.message || 'Failed to delete transaction', true);
     }
+  };
+
+  const openEditTransaction = (transaction) => {
+    setEditingTransactionId(transaction._id);
+    setFormData({
+      title: transaction.title || '',
+      amount: transaction.amount || '',
+      category: transaction.category?._id || transaction.category || '',
+      account: transaction.account?._id || transaction.account || '',
+      type: transaction.type || 'expense',
+      date: transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      note: transaction.note || '',
+      currency: transaction.currency || 'USD',
+    });
+    setShowTransactionForm(true);
+  };
+
+  const closeTransactionForm = () => {
+    setShowTransactionForm(false);
+    setEditingTransactionId(null);
   };
 
   // ── AI Voice Methods ──
@@ -251,13 +276,22 @@ export default function TransactionsPage() {
               {isExpense=="expense" ? '-' : (isExpense=="income"?'+': "")}${transaction.amount.toFixed(2)}
             </span>
           </div>
-          <button 
-            onClick={() => handleDeleteTransaction(transaction._id)}
-            className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors dark:bg-neutral-700 dark:hover:bg-red-900/20"
-            title="Delete Transaction"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => openEditTransaction(transaction)}
+              className="p-2 text-gray-400 hover:text-[#6be6b0] bg-gray-50 hover:bg-emerald-50 rounded-lg transition-colors dark:bg-neutral-700 dark:hover:bg-emerald-900/20"
+              title="Edit Transaction"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4 4 0 01-1.897 1.13L6 18l.8-2.685a4 4 0 011.13-1.897l8.932-8.931z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.5 7.125L16.875 4.5M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path></svg>
+            </button>
+            <button 
+              onClick={() => handleDeleteTransaction(transaction._id)}
+              className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors dark:bg-neutral-700 dark:hover:bg-red-900/20"
+              title="Delete Transaction"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
         </div>
 
       </div>
@@ -284,6 +318,23 @@ export default function TransactionsPage() {
           </div>
         </div>
 
+        <div className="walletly-fab-group">
+          <button
+            onClick={() => { setEditingTransactionId(null); setShowTransactionForm(true); }}
+            className="walletly-fab walletly-fab-primary"
+          >
+            <span className="walletly-fab-icon">+</span>
+            <span>Add</span>
+          </button>
+          <button
+            onClick={() => setShowAiPanel(true)}
+            className="walletly-fab walletly-fab-orange"
+          >
+            <span className="walletly-fab-icon">AI</span>
+            <span>Voice</span>
+          </button>
+        </div>
+
         {/* Alerts */}
         <div className="fixed top-5 right-5 z-50 flex flex-col gap-2">
           {message && (
@@ -299,8 +350,19 @@ export default function TransactionsPage() {
             </div>
           )}
         </div>
+        {showAiPanel && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-4xl">
                  {/* AI Voice Section */}
-        <div className="bg-gradient-to-br from-[#0e0e0e] via-[#161616] to-[#0e0e0e] border border-neutral-850 rounded-3xl p-6 sm:p-8 mb-10 text-white shadow-2xl relative overflow-hidden">
+        <div className="bg-gradient-to-br from-[#0e0e0e] via-[#161616] to-[#0e0e0e] border border-neutral-850 rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowAiPanel(false)}
+            className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/15"
+            aria-label="Close AI voice panel"
+          >
+            ×
+          </button>
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#6be6b0]/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#EA7108]/5 rounded-full -ml-20 -mb-20 blur-3xl"></div>
           
@@ -359,19 +421,26 @@ export default function TransactionsPage() {
             </div>
           </div>
         </div>
+            </div>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           
           {/* Create Form */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-700 overflow-hidden sticky top-8">
+          {showTransactionForm && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center">
+            <div className="w-full max-w-lg bg-white dark:bg-neutral-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-700 overflow-hidden my-6">
               <div className="p-6 bg-gray-50 dark:bg-neutral-800/50 border-b border-gray-100 dark:border-neutral-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                  </div>
-                  Quick Entry
-                </h2>
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    </div>
+                    {editingTransactionId ? 'Edit Transaction' : 'Quick Entry'}
+                  </h2>
+                  <button type="button" onClick={closeTransactionForm} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/15" aria-label="Close transaction form">×</button>
+                </div>
               </div>
               
               <form onSubmit={handleCreateTransaction} className=" p-4 md:p-8 space-y-6">
@@ -446,14 +515,15 @@ export default function TransactionsPage() {
 
                 <button type="submit" disabled={isSubmitting}
                   className={`w-full py-4 px-6 rounded-2xl shadow-lg shadow-green-500/20 text-sm font-extrabold text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-[1.02] active:scale-95 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
-                  {isSubmitting ? 'Processing...' : 'Save Transaction'}
+                  {isSubmitting ? 'Processing...' : editingTransactionId ? 'Save Changes' : 'Save Transaction'}
                 </button>
               </form>
             </div>
           </div>
+          )}
 
           {/* Transactions List */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
             
             {/* Totals Summary */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

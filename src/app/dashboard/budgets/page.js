@@ -16,6 +16,8 @@ export default function BudgetsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [editingBudgetId, setEditingBudgetId] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,6 +46,7 @@ export default function BudgetsPage() {
         ]);
         setBudgets(budgetsRes.data?.budgets || []);
         setCategories(categoriesRes.data || []);
+        window.dispatchEvent(new Event('walletly-feature-progress-refresh'));
       } catch (err) {
         setError(err.message || 'Failed to fetch data');
       } finally {
@@ -74,13 +77,14 @@ export default function BudgetsPage() {
         amount: Number(formData.amount),
       };
       
-      const response = await apiFetch('/budgets', {
-        method: 'POST',
+      const response = await apiFetch(editingBudgetId ? `/budgets/${editingBudgetId}` : '/budgets', {
+        method: editingBudgetId ? 'PATCH' : 'POST',
         body: JSON.stringify(payload),
       });
 
-      setMessage('Budget created successfully! 🚀');
-      setBudgets([response.data, ...budgets]);
+      setMessage(editingBudgetId ? 'Budget updated successfully!' : 'Budget created successfully!');
+      setBudgets(editingBudgetId ? budgets.map((budget) => budget._id === editingBudgetId ? response.data : budget) : [response.data, ...budgets]);
+      window.dispatchEvent(new Event('walletly-feature-progress-refresh'));
       setFormData({
         name: '',
         amount: '',
@@ -93,6 +97,8 @@ export default function BudgetsPage() {
         carryOverEnabled: false,
         currency: 'USD',
       });
+      setEditingBudgetId(null);
+      setShowBudgetForm(false);
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       setError(err.message || 'Failed to create budget');
@@ -107,6 +113,7 @@ export default function BudgetsPage() {
     try {
       await apiFetch(`/budgets/${id}`, { method: 'DELETE' });
       setBudgets(budgets.filter((b) => b._id !== id));
+      window.dispatchEvent(new Event('walletly-feature-progress-refresh'));
       setMessage('Budget deleted permanently.');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -115,10 +122,33 @@ export default function BudgetsPage() {
     }
   };
 
+  const openEditBudget = (budget) => {
+    setEditingBudgetId(budget._id);
+    setFormData({
+      name: budget.name || '',
+      amount: budget.amount || '',
+      category: budget.category?._id || budget.category || '',
+      note: budget.note || '',
+      period: budget.period || 'monthly',
+      startDate: budget.startDate ? new Date(budget.startDate).toISOString().split('T')[0] : '',
+      endDate: budget.endDate ? new Date(budget.endDate).toISOString().split('T')[0] : '',
+      autoRenew: Boolean(budget.autoRenew),
+      carryOverEnabled: Boolean(budget.carryOverEnabled),
+      currency: budget.currency || 'USD',
+    });
+    setShowBudgetForm(true);
+  };
+
+  const closeBudgetForm = () => {
+    setShowBudgetForm(false);
+    setEditingBudgetId(null);
+  };
+
   const handleToggleActive = async (id) => {
     try {
       const response = await apiFetch(`/budgets/${id}/toggle-active`, { method: 'PATCH' });
       setBudgets(budgets.map((b) => (b._id === id ? response.data : b)));
+      window.dispatchEvent(new Event('walletly-feature-progress-refresh'));
       setMessage(`Budget ${response.data.isActive ? 'activated' : 'paused'}.`);
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -145,7 +175,16 @@ export default function BudgetsPage() {
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">Take control of your finances by setting smart limits.</p>
           </div>
+        </div>
 
+        <div className="walletly-fab-group">
+          <button
+            onClick={() => { setEditingBudgetId(null); setShowBudgetForm(true); }}
+            className="walletly-fab walletly-fab-primary"
+          >
+            <span className="walletly-fab-icon">+</span>
+            <span>Add Budget</span>
+          </button>
         </div>
 
         {/* Alerts */}
@@ -164,18 +203,22 @@ export default function BudgetsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8">
           
           {/* Create Form */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-700 overflow-hidden sticky top-8">
+          {showBudgetForm && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center">
+            <div className="w-full max-w-2xl bg-white dark:bg-neutral-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-700 overflow-hidden my-6">
               <div className="p-6 bg-gray-50 dark:bg-neutral-800/50 border-b border-gray-100 dark:border-neutral-700">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                  </div>
-                  New Budget
-                </h2>
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                    </div>
+                    {editingBudgetId ? 'Edit Budget' : 'New Budget'}
+                  </h2>
+                  <button type="button" onClick={closeBudgetForm} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/15" aria-label="Close budget form">×</button>
+                </div>
               </div>
               
               <form onSubmit={handleCreateBudget} className="p-4 md:p-8 space-y-6">
@@ -260,14 +303,15 @@ export default function BudgetsPage() {
 
                 <button type="submit" disabled={isSubmitting}
                   className={`w-full py-4 px-6 rounded-2xl shadow-lg shadow-[#6be6b0]/15 text-sm font-extrabold text-black bg-gradient-to-r from-[#6be6b0] to-emerald-600 hover:scale-[1.02] transition-all transform active:scale-95 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
-                  {isSubmitting ? 'Processing...' : 'Launch Budget'}
+                  {isSubmitting ? 'Processing...' : editingBudgetId ? 'Save Changes' : 'Launch Budget'}
                 </button>
               </form>
             </div>
           </div>
+          )}
 
           {/* Budgets List */}
-          <div className="lg:col-span-2">
+          <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Your Active Budgets</h2>
             
             {budgets.length === 0 ? (
@@ -346,6 +390,13 @@ export default function BudgetsPage() {
                     )}
 
                     <div className="mt-6 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-neutral-700 pt-4">
+                      <button
+                        onClick={() => openEditBudget(budget)}
+                        className="py-2 px-3 rounded-xl text-sm font-medium border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:border-emerald-900/50 dark:text-emerald-400 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 transition-colors"
+                        title="Edit Budget"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4 4 0 01-1.897 1.13L6 18l.8-2.685a4 4 0 011.13-1.897l8.932-8.931z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.5 7.125L16.875 4.5M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path></svg>
+                      </button>
                       <button 
                         onClick={() => handleToggleActive(budget._id)}
                         className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium border transition-colors ${
