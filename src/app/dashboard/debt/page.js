@@ -110,7 +110,7 @@ export default function DebtPage() {
     try {
       const method = isEditing ? 'PATCH' : 'POST';
       const url = isEditing ? `/debt/${isEditing}` : '/debt';
-      await apiFetch(url, {
+      const res = await apiFetch(url, {
         method,
         body: JSON.stringify(debtForm)
       });

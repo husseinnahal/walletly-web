@@ -56,6 +56,7 @@ export default function MetalsPage() {
     quantity: 1,
     weight: 0,
     price: 0,
+    currency: 'USD',
     date: new Date().toISOString().split('T')[0],
     note: '',
     accountId: ''
@@ -223,6 +224,8 @@ export default function MetalsPage() {
       quantity: 1,
       weight: 0,
       price: 0,
+      currency: 'USD',
+
       date: new Date().toISOString().split('T')[0],
       note: '',
       accountId: accounts[0]?._id || ''

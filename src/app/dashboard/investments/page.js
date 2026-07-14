@@ -13,7 +13,8 @@ import {
   Rocket,
   Trash2,
   TrendingUp,
-  WalletCards
+  WalletCards,
+  MessageSquare
 } from 'lucide-react';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim();
@@ -300,6 +301,26 @@ export default function InvestmentsDashboard() {
             <Info className="h-4 w-4" />
             Details
           </button>
+
+          {(() => {
+            const ownerId = item.userId?._id || item.userId || item.owner?._id || item.owner;
+            if (view !== 'my' && ownerId && ownerId !== user?._id) {
+              return (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    router.push(`/dashboard/chat?userId=${ownerId}`);
+                  }}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2.5 text-sm font-extrabold text-white transition hover:bg-indigo-500"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Chat
+                </button>
+              );
+            }
+            return null;
+          })()}
 
           {view === 'my' && (
             <>

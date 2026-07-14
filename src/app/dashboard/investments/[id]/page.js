@@ -18,7 +18,8 @@ import {
   WalletCards,
   XCircle,
   Pencil,
-  Trash2
+  Trash2,
+  MessageSquare
 } from 'lucide-react';
 import { apiFetch } from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
@@ -223,6 +224,14 @@ export default function InvestmentDetailPage({ params }) {
     investment?.owner === user._id
   );
 
+  const getOwnerId = (inv) => {
+    if (!inv) return null;
+    if (inv.userId && typeof inv.userId === 'object') return inv.userId._id;
+    if (inv.owner && typeof inv.owner === 'object') return inv.owner._id;
+    return inv.userId || inv.owner;
+  };
+  const ownerId = getOwnerId(investment);
+
   const detailItems = [
     { icon: Tag, label: 'Category', value: investment.category },
     { icon: WalletCards, label: 'Investment Required', value: money(investment.requiredAmount) },
@@ -309,7 +318,7 @@ export default function InvestmentDetailPage({ params }) {
           {email && <TextPanel icon={Mail} title="Email Address" text={email} />}
           {investment.note && <TextPanel icon={StickyNote} title="Note" text={investment.note} />}
 
-          {(phone || email) && (
+          {(phone || email || (!isOwner && ownerId)) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {phone && (
                 <a
@@ -328,6 +337,15 @@ export default function InvestmentDetailPage({ params }) {
                   <Mail className="h-4 w-4" />
                   Send Message
                 </a>
+              )}
+              {!isOwner && ownerId && (
+                <button
+                  onClick={() => router.push(`/dashboard/chat?userId=${ownerId}`)}
+                  className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-4 text-sm font-black text-white transition hover:bg-indigo-500 col-span-1 sm:col-span-2"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Chat Directly on Walletly
+                </button>
               )}
             </div>
           )}

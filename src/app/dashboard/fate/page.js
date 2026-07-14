@@ -70,18 +70,6 @@ export default function FatePage() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <header className={styles.header}>
-          <button
-            type="button"
-            className={styles.backButton}
-            onClick={() => router.back()}
-            aria-label="Go back"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <h1>Fate Ball</h1>
-          <div className={styles.headerSpacer} />
-        </header>
 
         <div className={styles.modeSwitch} aria-label="Fate mode">
           <ModeButton
@@ -123,7 +111,7 @@ export default function FatePage() {
             className={styles.input}
             placeholder={
               isChooseMode
-                ? 'Save, Pay a bill, Clear a debt\nor write each option on a new line'
+                ? 'Save, Pay a bill, Clear a debt or write each option on a new line'
                 : 'Should I spend or save today?'
             }
           />

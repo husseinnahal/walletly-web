@@ -6,32 +6,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { apiFetch } from '../../../lib/api';
 import { getCurrencies } from '../../../lib/currencies';
-import billsAsset from '../../../../assets/images/bills.png';
-
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim();
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
-
-const resolveBackendImage = (image) => {
-  if (!image) return null;
-
-  const raw =
-    typeof image === 'string'
-      ? image
-      : image.url || image.secure_url || image.path || image.src || image.filename || '';
-
-  const value = String(raw).trim();
-  if (!value) return null;
-  if (value.startsWith('data:') || value.startsWith('blob:')) return value;
-  if (/^https?:\/\//i.test(value)) return value;
-
-  const normalized = value.replace(/\\/g, '/').replace(/^public\//, '');
-  return `${API_ORIGIN}/${normalized.replace(/^\/+/, '')}`;
-};
-
-const getBillImage = (bill) =>
-  resolveBackendImage(
-    bill?.image || bill?.imageUrl || bill?.photo || bill?.receiptImage || bill?.receipt || bill?.logo
-  );
 
 export default function BillsPage() {
   const { user } = useAuth();
@@ -99,10 +73,8 @@ export default function BillsPage() {
     try {
       const query = filterStatus !== 'all' ? `?status=${filterStatus}` : '';
       const res = await apiFetch(`/bills${query}`);
-      const data = res.data || { upcoming: [], others: [], stats: { spentThisMonth: 0, overdueCount: 0, projected30Days: 0 } };
-      
-      setBills(data);
-      setSummary(data.stats);
+      setBills(res.data);
+      setSummary(res.data.stats);
     } catch (err) {
       setError(err.message || 'Failed to fetch bills');
     } finally {
@@ -124,7 +96,6 @@ export default function BillsPage() {
         method,
         body: JSON.stringify(billForm)
       });
-      
       fetchBills();
       showFeedback(isEditing ? 'Bill updated!' : 'New bill added! 📅');
       resetBillForm();
@@ -149,6 +120,7 @@ export default function BillsPage() {
       reader.readAsDataURL(file);
     }
   };
+
 
   const handleDeleteBill = async (id) => {
     if (!confirm('Delete this bill? This will stop all future tracking for it.')) return;
@@ -212,8 +184,6 @@ const applyFilters = (bill) => {
   const filteredOthers = (bills.others || []).filter(applyFilters);
 
   const renderBillCard = (bill) => {
-    const billImage = getBillImage(bill);
-
     return (
     <div key={bill._id} className="bg-white dark:bg-neutral-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-neutral-700 transition-all hover:shadow-md relative overflow-hidden">
       {/* Status Indicator */}
@@ -227,25 +197,12 @@ const applyFilters = (bill) => {
 
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-4">
-          <div className="relative group/img">
-            <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-indigo-50 shadow-inner dark:bg-indigo-900/20">
-              {billImage && (
-                <img
-                  src={billImage}
-                  alt={bill.name}
-                  className="absolute inset-0 z-10 h-full w-full object-cover"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none';
-                    event.currentTarget.parentElement
-                      ?.querySelector('[data-bill-fallback]')
-                      ?.classList.remove('hidden');
-                  }}
-                />
-              )}
-              <div data-bill-fallback className={`${billImage ? 'hidden ' : ''}absolute inset-0`}>
-                <Image src={billsAsset} alt="" fill sizes="64px" className="object-contain p-2" />
-              </div>
-            </div>
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center shadow-inner border border-indigo-100/50 dark:border-indigo-900/30 overflow-hidden">
+            {bill.image ? (
+              <Image width={100} height={100} src={bill.image} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl">📅</span>
+            )}
           </div>
           <div>
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">{bill.name}</h3>
@@ -267,7 +224,7 @@ const applyFilters = (bill) => {
               autoPaid: bill.autoPaid,
               autoPayAccountId: bill.autoPayAccountId || '',
               notes: bill.notes || '',
-              image: bill.image || bill.imageUrl || bill.photo || bill.receiptImage || bill.receipt || bill.logo || ''
+              image: bill.image || ''
             });
             setIsEditing(bill._id);
             setShowBillForm(true);
@@ -467,8 +424,8 @@ const applyFilters = (bill) => {
                   <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-neutral-300 mb-1.5">Bill Photo / Receipt</label>
                   <div className="flex items-center gap-3">
                     <label className="flex-1 flex flex-col items-center justify-center h-24 sm:h-32 px-3 py-4 bg-gray-50 dark:bg-neutral-900 border-2 border-dashed border-gray-200 dark:border-neutral-700 rounded-2xl cursor-pointer hover:bg-gray-100 transition-all overflow-hidden">
-                      {resolveBackendImage(billForm.image) ? (
-                        <img src={resolveBackendImage(billForm.image)} alt="Preview" className="h-full w-full object-cover rounded-xl" />
+                      {billForm.image ? (
+                        <Image width={100} height={100} src={billForm.image} alt="Preview" className="h-full w-full object-cover rounded-xl" />
                       ) : (
                         <div className="text-center">
                           <span className="text-xl sm:text-2xl mb-1 block">📸</span>
@@ -482,6 +439,7 @@ const applyFilters = (bill) => {
                     )}
                   </div>
                 </div>
+
 
                 <div>
                   <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-neutral-300 mb-1.5">Amount</label>
@@ -499,6 +457,21 @@ const applyFilters = (bill) => {
                   <label className="block text-xs sm:text-sm font-bold text-gray-700 dark:text-neutral-300 mb-1.5">Due Date</label>
                   <input type="date" value={billForm.dueDate} onChange={(e) => setBillForm({...billForm, dueDate: e.target.value})} className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 transition-all" required />
                 </div>
+
+                    <div>
+                      <label className="block text-[10px] sm:text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1.5">Payment Account</label>
+                      <select
+                        value={billForm.autoPayAccountId}
+                        onChange={(e) => setBillForm({...billForm, autoPayAccountId: e.target.value})}
+                        className="w-full px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-neutral-800 text-xs sm:text-sm"
+                        required
+                      >
+                        <option value="">Select Account</option>
+                        {accounts.map(acc => (
+                          <option key={acc._id} value={acc._id}>{acc.name} (${acc.totalBalance})</option>
+                        ))}
+                      </select>
+                    </div>
 
                 <div className="flex items-center gap-2 py-1">
                   <input type="checkbox" checked={billForm.isRecurring} onChange={(e) => setBillForm({...billForm, isRecurring: e.target.checked, autoRenew: e.target.checked})} className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 rounded-lg focus:ring-indigo-500" />
@@ -523,20 +496,7 @@ const applyFilters = (bill) => {
                       <label className="text-xs sm:text-sm font-bold text-gray-700 dark:text-neutral-300">Auto-paid (Background Sync)</label>
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] sm:text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1.5">Default Payment Account</label>
-                      <select
-                        value={billForm.autoPayAccountId}
-                        onChange={(e) => setBillForm({...billForm, autoPayAccountId: e.target.value})}
-                        className="w-full px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-neutral-800 text-xs sm:text-sm"
-                        required
-                      >
-                        <option value="">Select Default Account</option>
-                        {accounts.map(acc => (
-                          <option key={acc._id} value={acc._id}>{acc.name} (${acc.totalBalance})</option>
-                        ))}
-                      </select>
-                    </div>
+
                   </div>
                 )}
 

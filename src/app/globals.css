@@ -195,7 +195,7 @@
 
 
 .walletly-shell > * {
-  position: relative;
+  /* position: relative; */
   z-index: 1;
 }
 
@@ -571,4 +571,34 @@
   html {
     scroll-behavior: smooth;
   }
+}
+
+/* ---- Custom Premium Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(8, 12, 10, 0.3);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 230, 176, 0.24);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) rgba(8, 12, 10, 0.3);
 }

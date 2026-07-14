@@ -1,46 +1,48 @@
 'use client';
 
+import {
+  ArrowLeftRight,
+  Bell,
+  Bot,
+  Calendar,
+  CircleHelp,
+  Coins,
+  LineChart,
+  LogOut,
+  Menu,
+  MessageSquare,
+  PieChart,
+  Scale,
+  Settings,
+  Shield,
+  Target,
+  TrendingUp,
+  Trophy,
+  User,
+  Wallet,
+  X
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { apiFetch } from '../../lib/api';
-import logoAsset from '../../../assets/images/logo.png';
-import flowAsset from '../../../assets/images/flow.png';
-import budgetsAsset from '../../../assets/images/budgets.png';
-import savingsAsset from '../../../assets/images/savings.png';
-import debtsAsset from '../../../assets/images/debts.png';
+import statsIcon from '../../../assets/icons/stats.svg';
+import userIcon from '../../../assets/icons/user.svg';
 import billsAsset from '../../../assets/images/bills.png';
-import metalsAsset from '../../../assets/images/metals.png';
-import investAsset from '../../../assets/images/invest.png';
-import fateAsset from '../../../assets/images/fate.png';
+import budgetsAsset from '../../../assets/images/budgets.png';
+import challengeAsset from '../../../assets/images/challenges/coiny_challenge.png';
 import chatbotAsset from '../../../assets/images/coinyChatbot.png';
 import coinyOpenAsset from '../../../assets/images/coinyOpen.png';
 import coinyWavingAsset from '../../../assets/images/coinyWaving.png';
-import challengeAsset from '../../../assets/images/challenges/coiny_challenge.png';
-import statsIcon from '../../../assets/icons/stats.svg';
-import userIcon from '../../../assets/icons/user.svg';
-import { 
-  User, 
-  ArrowLeftRight, 
-  TrendingUp, 
-  PieChart, 
-  Target, 
-  Scale, 
-  Wallet, 
-  Calendar, 
-  Coins, 
-  LineChart, 
-  Trophy, 
-  Bot, 
-  Shield, 
-  Settings, 
-  LogOut,
-  Menu,
-  X,
-  CircleHelp
-} from 'lucide-react';
+import debtsAsset from '../../../assets/images/debts.png';
+import fateAsset from '../../../assets/images/fate.png';
+import flowAsset from '../../../assets/images/flow.png';
+import investAsset from '../../../assets/images/invest.png';
+import logoAsset from '../../../assets/images/logo.png';
+import metalsAsset from '../../../assets/images/metals.png';
+import savingsAsset from '../../../assets/images/savings.png';
+import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../lib/api';
 
 export default function DashboardLayout({ children }) {
   const { user, logout, loading: authLoading } = useAuth();
@@ -49,10 +51,49 @@ export default function DashboardLayout({ children }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [featureProgress, setFeatureProgress] = useState(null);
 
+  // Notification states & helpers
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await apiFetch('/notifications');
+      if (res.success) {
+        setNotifications(res.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 20000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  const markNotificationRead = async (id) => {
+    try {
+      await apiFetch(`/notifications/${id}/read`, { method: 'DELETE' });
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    try {
+      await apiFetch('/notifications/mark-all-read', { method: 'DELETE' });
+      setNotifications([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     // Wait until auth check is complete before redirecting.
-    // Without this, a page refresh causes user=null briefly while
-    // checkSession() is still running → premature redirect to /login.
     if (!authLoading && !user) {
       router.replace('/login');
     }
@@ -83,7 +124,8 @@ export default function DashboardLayout({ children }) {
       items: [
         { label: 'Play & Earn', path: '/dashboard/gamification', icon: Trophy, visual: challengeAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
         { label: 'Fate Ball', path: '/dashboard/fate', icon: CircleHelp, visual: fateAsset, activeColor: 'bg-[#EA7108]/5 text-[#EA7108] border-[#EA7108]/20', glowColor: 'text-[#EA7108]' },
-        { label: 'AI Voice & Chat', path: '/dashboard/chatbot', icon: Bot, visual: chatbotAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Coiny', path: '/dashboard/chatbot', icon: Bot, visual: chatbotAsset, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
+        { label: 'Peer Chat', path: '/dashboard/chat', icon: MessageSquare, activeColor: 'bg-[#6be6b0]/5 text-[#6be6b0] border-[#6be6b0]/20', glowColor: 'text-[#6be6b0]' },
       ]
     },
     {
@@ -107,7 +149,8 @@ export default function DashboardLayout({ children }) {
     { path: '/dashboard/investments', title: 'Investments', subtitle: 'Keep assets and opportunities organized in one view.', visual: investAsset, icon: LineChart, accent: '#6be6b0' },
     { path: '/dashboard/gamification', title: 'Play & Earn', subtitle: 'Complete challenges, earn coins, and grow your streak.', visual: challengeAsset, icon: Trophy, accent: '#EA7108' },
     { path: '/dashboard/fate', title: 'Fate Ball', subtitle: 'Let Coiny help you choose when decisions feel stuck.', visual: fateAsset, icon: CircleHelp, accent: '#EA7108' },
-    { path: '/dashboard/chatbot', title: 'AI Voice & Chat', subtitle: 'Ask Coiny to help log, explain, and understand your money.', visual: chatbotAsset, icon: Bot, accent: '#6be6b0' },
+    { path: '/dashboard/chatbot', title: 'Coiny', subtitle: 'Ask Coiny to help log, explain, and understand your money.', visual: chatbotAsset, icon: Bot, accent: '#6be6b0' },
+    { path: '/dashboard/chat', title: 'Peer Chat', subtitle: 'Chat with other Walletly users directly in real-time.', icon: MessageSquare, accent: '#6be6b0' },
     { path: '/dashboard/security', title: 'App Security', subtitle: 'Protect your Walletly space and account preferences.', visual: coinyWavingAsset, icon: Shield, accent: '#6be6b0' },
     { path: '/dashboard/settings', title: 'Settings', subtitle: 'Tune your Walletly preferences for the way you manage money.', visual: coinyOpenAsset, icon: Settings, accent: '#6be6b0' },
     { path: '/dashboard', title: 'Settings & Profile', subtitle: 'Manage profile details, categories, security, and currency.', visual: userIcon, icon: User, accent: '#6be6b0' },
@@ -157,7 +200,6 @@ export default function DashboardLayout({ children }) {
     return () => window.removeEventListener('walletly-feature-progress-refresh', loadFeatureProgress);
   }, [loadFeatureProgress]);
 
-  // Show a spinner while auth state is being determined
   if (authLoading) {
     return (
       <div className="min-h-screen bg-walletly-theme flex items-center justify-center">
@@ -166,7 +208,6 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Auth done; no user means the redirect is in flight.
   if (!user) return null;
 
   return (
@@ -199,10 +240,20 @@ export default function DashboardLayout({ children }) {
                 <p className="text-xs text-neutral-500 truncate">{user?.email}</p>
               </div>
             </div>
-            {/* Green Online status dot */}
-            <div className="relative flex h-2 w-2 ml-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#6be6b0] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#6be6b0]"></span>
+            {/* Notification Bell with Badge */}
+            <div className="relative ml-2">
+              <button 
+                onClick={() => setShowNotifications(true)}
+                className={`p-2 rounded-xl transition relative border ${showNotifications ? 'bg-neutral-800 border-neutral-700 text-[#6be6b0]' : 'border-transparent text-neutral-400 hover:text-white hover:bg-neutral-900'}`}
+                title="Notifications"
+              >
+                <Bell className="w-4.5 h-4.5" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 flex items-center justify-center bg-red-500 text-white text-[9px] font-black rounded-full px-1.5 border-2 border-[#0e0e0e] shadow-sm animate-bounce">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -211,7 +262,7 @@ export default function DashboardLayout({ children }) {
         <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin">
           {navSections.map((section) => (
             <div key={section.title} className="space-y-2">
-              <h3 className="px-3 text-[10px] font-bold text-neutral-550 uppercase tracking-widest">{section.title}</h3>
+              <h3 className="px-3 text-[10px] font-bold text-neutral-555 uppercase tracking-widest">{section.title}</h3>
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
@@ -272,13 +323,31 @@ export default function DashboardLayout({ children }) {
             <span className="text-base font-black text-white tracking-tight uppercase">Walletly</span>
           </div>
 
-          <button
-            onClick={() => setIsMobileOpen(true)}
-            className="p-2 text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl border border-neutral-805 transition"
-            aria-label="Open navigation menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Mobile Notification Bell */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(true)}
+                className={`p-2 rounded-xl transition border ${showNotifications ? 'bg-neutral-800 border-neutral-700 text-[#6be6b0]' : 'border-transparent text-neutral-400 hover:text-white bg-neutral-900'}`}
+                title="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center bg-red-500 text-white text-[8px] font-black rounded-full px-1 border border-[#0e0e0e] shadow-sm animate-bounce">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              className="p-2 text-neutral-400 hover:text-white bg-neutral-900 hover:bg-neutral-800 rounded-xl border border-neutral-805 transition"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         {/* Mobile Drawer (Slide-out menu) */}
@@ -315,9 +384,9 @@ export default function DashboardLayout({ children }) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     {user?.avatar ? (
-                      <Image src={user.avatar} alt="Avatar" width={36} height={36} className="rounded-full object-cover w-9 h-9 border border-neutral-850" />
+                      <Image src={user.avatar} alt="Avatar" width={36} height={36} className="rounded-full object-cover w-9.5 h-9.5 border border-neutral-850" />
                     ) : (
-                      <div className="w-9 h-9 bg-gradient-to-br from-[#6be6b0] to-[#EA7108] rounded-full flex items-center justify-center text-black font-black text-xs">{user?.username?.[0]?.toUpperCase()}</div>
+                      <div className="w-9.5 h-9.5 bg-gradient-to-br from-[#6be6b0] to-[#EA7108] rounded-full flex items-center justify-center text-black font-black text-xs">{user?.username?.[0]?.toUpperCase()}</div>
                     )}
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-neutral-100 truncate">{user?.username}</p>
@@ -425,7 +494,164 @@ export default function DashboardLayout({ children }) {
         </main>
       </div>
 
+      {/* Backdrop overlay */}
+      {showNotifications && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] transition-opacity animate-fade-in"
+          onClick={() => setShowNotifications(false)}
+        />
+      )}
+
+      {/* Sliding Full-Height Notification Drawer */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[100] w-[100vw] h-[100vh] overflow-hidden">
+          {/* Dark blurred background */}
+          <button
+            type="button"
+            aria-label="Close notifications"
+            onClick={() => setShowNotifications(false)}
+            className="absolute inset-0 bg-black/20 backdrop-blur-[5px] "
+          />
+
+          {/* Notification Drawer */}
+          <aside
+            className="
+              absolute inset-y-0 right-0
+              flex h-dvh w-[400px] max-w-[92vw] flex-col
+              border-l border-white/5
+              bg-[#090a0a]
+              shadow-[-20px_0_60px_rgba(0,0,0,0.55)]
+              animate-slide-in-right
+            "
+          >
+            {/* Header */}
+            <div className="flex min-h-[96px] items-center justify-between border-b border-white/5 px-7 py-5">
+              <div>
+                <h3 className="text-base font-black uppercase tracking-wide text-white">
+                  Notification Hub
+                </h3>
+
+                <p className="mt-1 text-[11px] font-medium text-neutral-500">
+                  {notifications.length} unread alerts
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {notifications.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAllNotifications}
+                    className="
+                      text-[10px] font-black uppercase tracking-widest
+                      text-red-400 transition-colors
+                      hover:text-red-300
+                    "
+                  >
+                    Clear All
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  aria-label="Close notifications"
+                  onClick={() => setShowNotifications(false)}
+                  className="
+                    flex h-10 w-10 items-center justify-center
+                    rounded-full bg-[#181818]
+                    text-neutral-500 transition
+                    hover:bg-neutral-800 hover:text-white
+                  "
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="flex-1 space-y-3 overflow-y-auto px-6 py-7 scrollbar-thin">
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <article
+                    key={notification._id}
+                    className="
+                      group relative flex gap-4
+                      rounded-[18px] border border-white/10
+                      bg-[#0b0c0c] px-5 py-5
+                      transition-all duration-200
+                      hover:border-white/20 hover:bg-[#101111]
+                      animate-slide-up
+                    "
+                  >
+                    {/* Icon */}
+                    <div className="flex h-9 w-9 shrink-0 items-start justify-center pt-0.5 text-[25px]">
+                      {notification.icon || "🔔"}
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1 pr-5">
+                      <h5 className="mb-1.5 text-[13px] font-black leading-snug text-white">
+                        {notification.title}
+                      </h5>
+
+                      <p className="text-[11px] leading-[1.6] text-neutral-400">
+                        {notification.description}
+                      </p>
+
+                      <time className="mt-3 block text-[9px] font-black uppercase text-neutral-300">
+                        {new Date(notification.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "numeric",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )}{" "}
+                        {new Date(notification.createdAt).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </time>
+                    </div>
+
+                    {/* Remove notification */}
+                    <button
+                      type="button"
+                      aria-label="Remove notification"
+                      onClick={() => markNotificationRead(notification._id)}
+                      className="
+                        absolute right-4 top-4
+                        text-neutral-600 opacity-0
+                        transition-all
+                        hover:text-red-400
+                        group-hover:opacity-100
+                      "
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </article>
+                ))
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center px-5 text-center">
+                  <span className="mb-4 text-5xl">🔔</span>
+
+                  <p className="text-sm font-bold text-neutral-300">
+                    No notifications found
+                  </p>
+
+                  <p className="mt-2 max-w-[240px] text-[11px] leading-relaxed text-neutral-500">
+                    We will let you know when new transactions, budget alerts, or
+                    messages arrive.
+                  </p>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
+
     </div>
   );
 }
-
